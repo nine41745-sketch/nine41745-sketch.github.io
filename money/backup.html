@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Backup Inspector</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#0f0f1a;color:#eee;max-width:900px}
+h2{color:#fff}.ok{color:#4ade80}.err{color:#f87171}.warn{color:#fbbf24}.info{color:#7ab8f5}
+pre{background:#1a1a1a;padding:12px;border-radius:8px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid #2a2a3a;font-size:12px}
+th{background:#1e1e2e;color:#7ab8f5}
+.btn{background:#EF9F27;color:#111;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin:4px}
+.section{background:#1a1a2e;border-radius:8px;padding:15px;margin:12px 0;border:1px solid #2a2a3a}
+</style>
+</head>
+<body>
+<h2>🔍 LocalStorage Backup Inspector</h2>
+<div class="section">
+<h3>📦 localStorage keys ทั้งหมด</h3>
+<div id="all-keys"></div>
+</div>
+<div class="section">
+<h3>🗓️ ตรวจสอบข้อมูลวันที่ 1-2 กรกฎาคม (2569-07)</h3>
+<div id="july-check"></div>
+</div>
+<div class="section">
+<h3>💾 Export / กู้คืน</h3>
+<button class="btn" onclick="exportBackup('bh_data_backup')">⬇️ Export bh_data_backup</button>
+<button class="btn" onclick="exportBackup('bh_data2')">⬇️ Export bh_data2 (ปัจจุบัน)</button>
+<div id="restore-area" style="margin-top:12px">
+  <p style="font-size:12px;color:#888">กู้คืนจาก backup file (.json):</p>
+  <input type="file" id="restore-file" accept=".json" onchange="loadRestoreFile(this)">
+  <div id="restore-preview" style="margin-top:8px"></div>
+</div>
+</div>
+<script>
+// Show all localStorage keys
+const allKeys = document.getElementById('all-keys');
+const bhKeys = ['bh_data2','bh_data_backup','bh_cats','bh_recurring','bh_budget','fb_config'];
+let html = '<table><tr><th>Key</th><th>Size</th><th>Has July 2?</th></tr>';
+for(const k of bhKeys){
+  const v = localStorage.getItem(k);
+  if(v){
+    let hasJuly2 = '-';
+    try{
+      const parsed = JSON.parse(v);
+      if(parsed && parsed['2569-07']){
+        const days = parsed['2569-07'].days;
+        if(Array.isArray(days) && days[2]) hasJuly2 = '<span class="ok">✅ YES</span>';
+        else if(days && days['2']) hasJuly2 = '<span class="ok">✅ YES</span>';
+        else hasJuly2 = '<span class="err">❌ NO</span>';
+      }
+    }catch(e){}
+    html += '<tr><td><b>'+k+'</b></td><td>'+(v.length/1024).toFixed(1)+'KB</td><td>'+hasJuly2+'</td></tr>';
+  } else {
+    html += '<tr style="opacity:0.4"><td>'+k+'</td><td colspan="2">ไม่มี</td></tr>';
+  }
+}
+html += '</table>';
+allKeys.innerHTML = html;
+
+// Check July data
+const julyEl = document.getElementById('july-check');
+['bh_data2','bh_data_backup'].forEach(key => {
+  const v = localStorage.getItem(key);
+  if(!v){ julyEl.innerHTML += '<p class="warn">⚠️ ไม่พบ '+key+'</p>'; return; }
+  try{
+    const data = JSON.parse(v);
+    const july = data['2569-07'];
+    if(!july){ julyEl.innerHTML += '<p class="err">❌ '+key+': ไม่มีข้อมูลเดือนกรกฎาคม</p>'; return; }
+    const days = july.days;
+    let day1 = days && (Array.isArray(days) ? days[1] : days['1']);
+    let day2 = days && (Array.isArray(days) ? days[2] : days['2']);
+    julyEl.innerHTML += '<div style="margin:8px 0"><b class="info">'+key+'</b><br>';
+    julyEl.innerHTML += (day1 ? '<span class="ok">✅ วันที่ 1: '+JSON.stringify(day1).substring(0,100)+'</span>' : '<span class="err">❌ วันที่ 1: ไม่มี</span>') + '<br>';
+    julyEl.innerHTML += (day2 ? '<span class="ok">✅ วันที่ 2: '+JSON.stringify(day2).substring(0,100)+'</span>' : '<span class="err">❌ วันที่ 2: ไม่มี</span>') + '</div>';
+  }catch(e){ julyEl.innerHTML += '<p class="err">❌ Parse error: '+e.message+'</p>'; }
+});
+
+function exportBackup(key){
+  const v = localStorage.getItem(key);
+  if(!v){ alert('ไม่พบ '+key); return; }
+  const blob = new Blob([v], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = key+'_export_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function loadRestoreFile(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      const months = Object.keys(data);
+      const july = data['2569-07'];
+      const july2 = july && july.days && (Array.isArray(july.days) ? july.days[2] : july.days['2']);
+      let html = '<div style="background:#1a2a1a;padding:10px;border-radius:6px;margin-top:8px">';
+      html += '<p class="ok">✅ โหลดไฟล์สำเร็จ — '+months.length+' เดือน</p>';
+      html += (july2 ? '<p class="ok">✅ พบข้อมูลวันที่ 2 กรกฎา: '+JSON.stringify(july2).substring(0,150)+'</p>' : '<p class="err">❌ ไม่พบวันที่ 2 กรกฎา</p>');
+      html += '<button class="btn" style="margin-top:8px" onclick="doRestore('+JSON.stringify(JSON.stringify(data))+')">🔄 กู้คืนข้อมูลนี้ลง localStorage</button>';
+      html += '</div>';
+      document.getElementById('restore-preview').innerHTML = html;
+    }catch(e){ document.getElementById('restore-preview').innerHTML = '<p class="err">❌ JSON parse error: '+e.message+'</p>'; }
+  };
+  reader.readAsText(file);
+}
+
+function doRestore(jsonStr){
+  if(!confirm('แน่ใจหรือไม่? จะเขียนทับข้อมูลปัจจุบันใน bh_data2')) return;
+  localStorage.setItem('bh_data2', jsonStr);
+  alert('✅ กู้คืนสำเร็จ! กรุณาเปิด /money/ ใหม่');
+}
+</script>
+</body>
+</html>
