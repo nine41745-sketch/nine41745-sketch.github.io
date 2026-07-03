@@ -167,12 +167,14 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 .item-cat{width:150px;}
 .item-acts{display:flex;gap:4px;justify-content:flex-end;width:72px;}
 .empty-items{text-align:center;padding:16px;color:#334155;font-size:13px;}
-.item-chk{width:15px;height:15px;cursor:pointer;accent-color:#6366f1;flex-shrink:0;margin-right:2px;}
-.item-row.selected{background:#1a2540;}
-.sel-bar{display:none;align-items:center;gap:14px;padding:8px 14px;background:#0f2a1a;border-top:1px solid #1e4a2a;border-radius:0 0 10px 10px;font-size:13px;flex-wrap:wrap;margin-top:4px;}
+.item-nai.amt-sel{background:#1e2a4a;outline:2px solid #a5b4fc;border-radius:6px;cursor:pointer;}
+.item-jen.amt-sel{background:#2a1a2a;outline:2px solid #f9a8d4;border-radius:6px;cursor:pointer;}
+.item-nai.amt-clickable:hover{background:#1e2a4a;border-radius:6px;cursor:pointer;}
+.item-jen.amt-clickable:hover{background:#2a1a2a;border-radius:6px;cursor:pointer;}
+.sel-bar{display:none;align-items:center;gap:14px;padding:8px 14px;background:#0d1f0f;border-top:1px solid #1e4a2a;border-radius:0 0 10px 10px;font-size:13px;flex-wrap:wrap;margin-top:4px;}
 .sel-bar b{font-weight:700;}
 .sel-clear{background:none;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:'Sarabun',sans-serif;}
-.sel-clear:hover{border-color:#6366f1;color:#a5b4fc;}
+.sel-clear:hover{border-color:#4ade80;color:#4ade80;}
 .cat{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
 .c0{background:#0c4a6e;color:#7dd3fc;}.c1{background:#2e1065;color:#c4b5fd;}
 .c2{background:#14532d;color:#86efac;}.c3{background:#713f12;color:#fcd34d;}
@@ -1109,11 +1111,14 @@ function buildItemsRow(d,day){
   const expJ=(day.items||[]).reduce((s,i)=>s+(i.jen||0),0);
   const tr=document.createElement('tr');tr.className='items-row';tr.id=`ir-${d}`;
   const items=(day.items||[]).map(item=>`
-    <div class="item-row" data-nai="${item.nai||0}" data-jen="${item.jen||0}">
-      <input type="checkbox" class="item-chk" onchange="updateSelection(this,${d})" onclick="event.stopPropagation()">
+    <div class="item-row">
       <div class="item-name">${item.name}</div>
-      <div class="item-nai">${item.nai>0?fmt(item.nai):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#a5b4fc;font-weight:700;">นาย</span></div>
-      <div class="item-jen">${item.jen>0?fmt(item.jen):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#f9a8d4;font-weight:700;">เจน</span></div>
+      <div class="item-nai${item.nai>0?' amt-clickable':''}" data-val="${item.nai||0}" data-day="${d}" data-id="${item.id}-nai" ${item.nai>0?`onclick="toggleAmt(this,${d})" title="คลิกเพื่อเลือกยอดนี้"`:''}>
+        ${item.nai>0?fmt(item.nai):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#a5b4fc;font-weight:700;">นาย</span>
+      </div>
+      <div class="item-jen${item.jen>0?' amt-clickable':''}" data-val="${item.jen||0}" data-day="${d}" data-id="${item.id}-jen" ${item.jen>0?`onclick="toggleAmt(this,${d})" title="คลิกเพื่อเลือกยอดนี้"`:''}>
+        ${item.jen>0?fmt(item.jen):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#f9a8d4;font-weight:700;">เจน</span>
+      </div>
       <div class="item-cat"><span class="cat ${CAT_CLS[item.cat]||'c5'}">${CAT_EMOJI[item.cat]||''} ${item.cat}</span></div>
       <div class="item-acts">
         <button class="btn btn-secondary btn-sm" onclick="openEditItem(${d},${item.id})">✏️</button>
@@ -1127,9 +1132,7 @@ function buildItemsRow(d,day){
     </div>
     ${items||'<div class="empty-items">📭 ยังไม่มีรายการ</div>'}
     <div class="sel-bar" id="sel-${d}">
-      <span>✅ เลือก <b class="sel-cnt">0</b> รายการ</span>
-      <span>นาย <b class="sel-nai" style="color:#a5b4fc">฿0</b></span>
-      <span>เจน <b class="sel-jen" style="color:#f9a8d4">฿0</b></span>
+      <span>เลือก <b class="sel-cnt">0</b> ยอด</span>
       <span>รวม <b class="sel-total" style="color:#4ade80">฿0</b></span>
       <button class="sel-clear" onclick="clearSelection(${d})">ล้าง</button>
     </div>
@@ -1722,33 +1725,32 @@ function importData(e){
   e.target.value='';
 }
 
-function updateSelection(el, d) {
-  const wrap = el.closest('.items-wrap');
-  const checked = wrap.querySelectorAll('.item-chk:checked');
-  let nai = 0, jen = 0;
-  checked.forEach(cb => {
-    const row = cb.closest('.item-row');
-    nai += parseFloat(row.dataset.nai) || 0;
-    jen += parseFloat(row.dataset.jen) || 0;
-    row.classList.toggle('selected', cb.checked);
-  });
-  wrap.querySelectorAll('.item-chk:not(:checked)').forEach(cb => cb.closest('.item-row').classList.remove('selected'));
-  const bar = document.getElementById('sel-' + d);
-  if (bar) {
-    bar.style.display = checked.length ? 'flex' : 'none';
-    bar.querySelector('.sel-cnt').textContent = checked.length;
-    bar.querySelector('.sel-nai').textContent = fmt(nai);
-    bar.querySelector('.sel-jen').textContent = fmt(jen);
-    bar.querySelector('.sel-total').textContent = fmt(nai + jen);
+function toggleAmt(el, d) {
+  const id = el.dataset.id;
+  const val = parseFloat(el.dataset.val) || 0;
+  const isNai = el.classList.contains('item-nai');
+  if (el.classList.contains('amt-sel') || el.classList.contains(isNai ? 'amt-sel' : 'amt-sel')) {
+    el.classList.remove('amt-sel');
+  } else {
+    el.classList.add('amt-sel');
   }
+  updateSelBar(d);
+}
+function updateSelBar(d) {
+  const bar = document.getElementById('sel-' + d);
+  if (!bar) return;
+  const wrap = bar.closest('.items-wrap');
+  const selEls = wrap.querySelectorAll('.amt-sel');
+  let total = 0;
+  selEls.forEach(el => { total += parseFloat(el.dataset.val) || 0; });
+  bar.style.display = selEls.length ? 'flex' : 'none';
+  bar.querySelector('.sel-cnt').textContent = selEls.length;
+  bar.querySelector('.sel-total').textContent = fmt(total);
 }
 function clearSelection(d) {
   const bar = document.getElementById('sel-' + d);
   if (!bar) return;
-  bar.closest('.items-wrap').querySelectorAll('.item-chk').forEach(cb => {
-    cb.checked = false;
-    cb.closest('.item-row').classList.remove('selected');
-  });
+  bar.closest('.items-wrap').querySelectorAll('.amt-sel').forEach(el => el.classList.remove('amt-sel'));
   bar.style.display = 'none';
 }
 </script>
