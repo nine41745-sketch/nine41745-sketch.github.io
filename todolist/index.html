@@ -1852,7 +1852,21 @@ save();
 let filter='all';
 let summaryVisible=false;
 
-function getSavedFbConfig(){try{return JSON.parse(localStorage.getItem('todo_fb_config'));}catch(e){return null;}}
+// ── FIREBASE CONFIG (hardcoded) ──────────────────
+const _HARDCODED_FB_CONFIG = {
+  apiKey: "AIzaSyA7gZ91IlRxQyWvkZzMNLNl7p-wnZ93Xug",
+  authDomain: "todo-nai.firebaseapp.com",
+  databaseURL: "https://todo-nai-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "todo-nai",
+  storageBucket: "todo-nai.firebasestorage.app",
+  messagingSenderId: "503927363859",
+  appId: "1:503927363859:web:096183ab4a149f2baf22e6"
+};
+
+function getSavedFbConfig(){
+  try{return JSON.parse(localStorage.getItem('todo_fb_config'));}catch(e){}
+  return _HARDCODED_FB_CONFIG;
+}
 
 function updateSyncBadge(state){
   const el=document.getElementById('fbStatus');
