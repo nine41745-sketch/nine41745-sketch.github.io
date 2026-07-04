@@ -539,9 +539,8 @@ function save(){
 }
 
 (function(){
-  const saved=getSavedFbConfig();
-  if(saved&&typeof firebase!=='undefined'){
-    try{initFirebaseDB(saved);}catch(e){console.error('Firebase init error:',e);}
+  if(typeof firebase!=='undefined'){
+    try{initFirebaseDB(_HARDCODED_FB_CONFIG);}catch(e){console.error('Firebase init error:',e);}
   }
 })();
 
