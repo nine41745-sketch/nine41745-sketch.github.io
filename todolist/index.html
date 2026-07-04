@@ -453,15 +453,14 @@ function updateSyncBadge(state){
 }
 
 function openFbModal(){
-  const saved=getSavedFbConfig();
-  if(saved&&_fbRef){
+  if(_fbRef){
     document.getElementById('fb-setup-view').style.display='none';
     document.getElementById('fb-connected-view').style.display='block';
-    document.getElementById('fb-project-name').textContent=saved.projectId||'-';
+    document.getElementById('fb-project-name').textContent=_HARDCODED_FB_CONFIG.projectId||'-';
   }else{
     document.getElementById('fb-setup-view').style.display='block';
     document.getElementById('fb-connected-view').style.display='none';
-    if(saved)document.getElementById('fbConfigInput').value=JSON.stringify(saved,null,2);
+    document.getElementById('fbConfigInput').value=JSON.stringify(_HARDCODED_FB_CONFIG,null,2);
   }
   document.getElementById('fbModal').classList.add('open');
 }
