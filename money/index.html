@@ -261,7 +261,7 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 <body>
 
 <!-- LOGIN -->
-<div id="loginScreen" style="display: none;">
+<div id="loginScreen" style="display: flex;">
   <div class="login-box">
     <div class="login-logo">
       <svg width="130" height="72" viewBox="0 0 130 72" xmlns="http://www.w3.org/2000/svg">
@@ -344,7 +344,7 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 </div>
 
 <!-- MAIN APP -->
-<div id="mainApp" style="display: block;">
+<div id="mainApp" style="display: none;">
   <div class="header">
     <div class="header-title">🐾 ลัคกี้ &amp; ยูฟ่า <span>Dashboard</span> <span id="lastUpdated" style="font-size:11px;color:#475569;font-weight:400;margin-left:6px;"></span></div>
     <div class="header-right">
@@ -1125,7 +1125,7 @@ function buildItemsRow(d,day){
   </div>
   <textarea id="scratch-${d}" style="width:100%;height:76px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;font-family:'Sarabun',sans-serif;padding:8px;resize:none;outline:none;line-height:1.7;transition:border-color .2s;" placeholder="จดก่อน เช่น: โลตัส 500\n  นาย: ขนม100 ข้าว250\n  เจน: ขนม100 ข้าว50" oninput="saveScratch(${d},this.value)" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#334155'">${(day.scratch||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
   <div id="scratch-sum-${d}" style="font-size:12px;color:#7dd3fc;margin-top:4px;display:none;padding:4px 8px;background:#0d1b2e;border-radius:6px;"></div>
-  </div></td>\`;
+  </div></td>`;
   return tr;
 }
 
