@@ -261,7 +261,7 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 <body>
 
 <!-- LOGIN -->
-<div id="loginScreen" style="display: flex;">
+<div id="loginScreen" style="display: none;">
   <div class="login-box">
     <div class="login-logo">
       <svg width="130" height="72" viewBox="0 0 130 72" xmlns="http://www.w3.org/2000/svg">
@@ -344,7 +344,7 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 </div>
 
 <!-- MAIN APP -->
-<div id="mainApp" style="display: none;">
+<div id="mainApp" style="display: block;">
   <div class="header">
     <div class="header-title">🐾 ลัคกี้ &amp; ยูฟ่า <span>Dashboard</span> <span id="lastUpdated" style="font-size:11px;color:#475569;font-weight:400;margin-left:6px;"></span></div>
     <div class="header-right">
@@ -818,7 +818,7 @@ function save(){
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp in header
   const _lu=document.getElementById('lastUpdated');
-  if(_lu){const _n=new Date();_lu.textContent='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';}
+  if(_lu){const _n=new Date();const _ts='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';_lu.textContent=_ts;localStorage.setItem('bh_last_updated',_ts);}
   if(window._fbRef){
     window._fbRef.set(DB)
       .then(()=>updateSyncBadge('ok'))
@@ -854,6 +854,8 @@ function bootApp(){
   try{load();}catch(e){DB=JSON.parse(JSON.stringify(SEED));}
   try{buildMonthSel();}catch(e){}
   try{renderAll();}catch(e){}
+  const _savedTs=localStorage.getItem('bh_last_updated');
+  if(_savedTs){const _lu=document.getElementById('lastUpdated');if(_lu)_lu.textContent=_savedTs;}
   const sfc=getSavedFbConfig();
   if(sfc)initFirebaseDB(sfc);
 }
@@ -1119,13 +1121,14 @@ function buildItemsRow(d,day){
     </div>
     ${items||'<div class="empty-items">📭 ยังไม่มีรายการ</div>'}
   <div style="border-top:1px dashed #1e3a5f;margin:10px 0;"></div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-    <div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:.04em;">📝 จดคร่าวๆ (Scratch pad)</div>
-    <button class="btn btn-secondary btn-sm" onclick="calcScratch(${d},event)" style="font-size:11px;padding:3px 8px;">Σ คำนวณยอด</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:.04em;">📝 จดคร่าวๆ</div>
+    <button class="btn btn-secondary btn-sm" onclick="addScratchEntry(${d})" style="font-size:11px;padding:3px 8px;">+ เพิ่มหัวข้อ</button>
   </div>
-  <textarea id="scratch-${d}" style="width:100%;height:76px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;font-family:'Sarabun',sans-serif;padding:8px;resize:none;outline:none;line-height:1.7;transition:border-color .2s;" placeholder="จดก่อน เช่น: โลตัส 500\n  นาย: ขนม100 ข้าว250\n  เจน: ขนม100 ข้าว50" oninput="saveScratch(${d},this.value)" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#334155'">${(day.scratch||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-  <div id="scratch-sum-${d}" style="font-size:12px;color:#7dd3fc;margin-top:4px;display:none;padding:4px 8px;background:#0d1b2e;border-radius:6px;"></div>
+  <div id="scratch-entries-${d}" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div id="scratch-total-${d}" style="display:none;font-size:12px;color:#7dd3fc;margin-top:6px;padding:4px 10px;background:#0d1b2e;border-radius:6px;"></div>
   </div></td>`;
+  setTimeout(()=>renderScratchPad(d),0);
   return tr;
 }
 
@@ -1357,24 +1360,79 @@ function deleteCat(i){
 }
 
 // ── SCRATCH PAD ────────────────────────────────────
-function saveScratch(d,val){
+function getScratchEntries(d){
+  if(!DB[curMonth]||!DB[curMonth].days[d])return[];
+  return DB[curMonth].days[d].scratchEntries||[];
+}
+function saveScratchEntries(d){
   if(!DB[curMonth]||!DB[curMonth].days[d])return;
-  DB[curMonth].days[d].scratch=val;
-  // save to localStorage only (no Firebase push for scratch pad)
+  const entries=[];
+  document.querySelectorAll(`#scratch-entries-${d} .scratch-entry`).forEach(el=>{
+    entries.push({title:el.querySelector('.scratch-title').value,nai:el.querySelector('.scratch-nai').value,jen:el.querySelector('.scratch-jen').value});
+  });
+  DB[curMonth].days[d].scratchEntries=entries;
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   if(window._fbRef)window._fbRef.set(DB).catch(()=>{});
+  updateScratchTotal(d);
 }
-function calcScratch(d,ev){
-  ev.stopPropagation();
-  const el=document.getElementById('scratch-'+d);
-  if(!el)return;
-  const nums=[...el.value.matchAll(/[0-9]+(?:\.[0-9]+)?/g)].map(m=>parseFloat(m[0]));
-  const sumEl=document.getElementById('scratch-sum-'+d);
-  if(!sumEl)return;
-  if(!nums.length){sumEl.textContent='ไม่พบตัวเลข';sumEl.style.display='block';return;}
-  const total=nums.reduce((s,n)=>s+n,0);
-  sumEl.textContent='ยอดรวมตัวเลขทั้งหมด: ฿'+Math.round(total).toLocaleString('th-TH')+' ('+nums.length+' รายการ)';
-  sumEl.style.display='block';
+function sumNums(text){
+  return [...(text||'').matchAll(/[0-9]+(?:\.[0-9]+)?/g)].reduce((s,m)=>s+parseFloat(m[0]),0);
+}
+function updateScratchTotal(d){
+  const container=document.getElementById(`scratch-entries-${d}`);
+  const totalEl=document.getElementById(`scratch-total-${d}`);
+  if(!container||!totalEl)return;
+  let tN=0,tJ=0;
+  container.querySelectorAll('.scratch-entry').forEach(el=>{
+    const n=sumNums(el.querySelector('.scratch-nai').value);
+    const j=sumNums(el.querySelector('.scratch-jen').value);
+    el.querySelector('.scratch-sum-n').textContent=n>0?'฿'+Math.round(n).toLocaleString():'';
+    el.querySelector('.scratch-sum-j').textContent=j>0?'฿'+Math.round(j).toLocaleString():'';
+    tN+=n;tJ+=j;
+  });
+  if(tN>0||tJ>0){
+    totalEl.textContent='รวมทั้งวัน — นาย: ฿'+Math.round(tN).toLocaleString()+' · เจน: ฿'+Math.round(tJ).toLocaleString();
+    totalEl.style.display='block';
+  }else{totalEl.style.display='none';}
+}
+function renderScratchPad(d){
+  const container=document.getElementById(`scratch-entries-${d}`);
+  if(!container)return;
+  container.innerHTML='';
+  (getScratchEntries(d)||[]).forEach(e=>_appendScratchEntry(d,e.title,e.nai,e.jen));
+  updateScratchTotal(d);
+}
+function _appendScratchEntry(d,title,nai,jen){
+  const container=document.getElementById(`scratch-entries-${d}`);
+  if(!container)return;
+  const div=document.createElement('div');
+  div.className='scratch-entry';
+  div.style.cssText='background:#0d1b2e;border:1px solid #1e3a5f;border-radius:8px;padding:8px 10px;';
+  div.innerHTML=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+    <input class="scratch-title" type="text" value="${(title||'').replace(/"/g,'&quot;')}" placeholder="ชื่อสถานที่ / หัวข้อ" style="flex:1;font-size:12px;font-weight:600;padding:4px 8px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;outline:none;" oninput="saveScratchEntries(${d})">
+    <button onclick="removeScratchEntry(${d},this)" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div>
+      <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👤 นาย</div>
+      <textarea class="scratch-nai" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})">${(nai||'').replace(/</g,'&lt;')}</textarea>
+      <div class="scratch-sum-n" style="font-size:11px;color:#a5b4fc;margin-top:2px;text-align:right;"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👩 เจน</div>
+      <textarea class="scratch-jen" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})">${(jen||'').replace(/</g,'&lt;')}</textarea>
+      <div class="scratch-sum-j" style="font-size:11px;color:#f9a8d4;margin-top:2px;text-align:right;"></div>
+    </div>
+  </div>`;
+  container.appendChild(div);
+}
+function addScratchEntry(d){
+  _appendScratchEntry(d,'','','');
+  saveScratchEntries(d);
+}
+function removeScratchEntry(d,btn){
+  btn.closest('.scratch-entry').remove();
+  saveScratchEntries(d);
 }
 
 // ── SEARCH ─────────────────────────────────────────
