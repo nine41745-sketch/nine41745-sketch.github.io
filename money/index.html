@@ -1372,7 +1372,9 @@ function saveScratchEntries(d){
   });
   DB[curMonth].days[d].scratchEntries=entries;
   localStorage.setItem('bh_data2',JSON.stringify(DB));
-  if(window._fbRef)window._fbRef.set(DB).catch(()=>{});
+  // debounce Firebase push — ถ้า push ทันทีทุก keystroke จะ trigger onValue → renderAll() → textarea หาย
+  if(window._scratchFbTimer)clearTimeout(window._scratchFbTimer);
+  window._scratchFbTimer=setTimeout(()=>{if(window._fbRef)window._fbRef.set(DB).catch(()=>{});},1500);
   updateScratchTotal(d);
 }
 function sumNums(text){
