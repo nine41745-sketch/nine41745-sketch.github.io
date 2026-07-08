@@ -834,7 +834,7 @@ function save(){
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp in header
   const _lu=document.getElementById('lastUpdated');
-  if(_lu){const _n=new Date();_lu.textContent='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';}
+  if(_lu){const _n=new Date();const _ts='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';_lu.textContent=_ts;localStorage.setItem('bh_last_updated',_ts);}
   if(window._fbRef){
     window._fbRef.set(DB)
       .then(()=>updateSyncBadge('ok'))
@@ -870,6 +870,8 @@ function bootApp(){
   try{load();}catch(e){DB=JSON.parse(JSON.stringify(SEED));}
   try{buildMonthSel();}catch(e){}
   try{renderAll();}catch(e){}
+  const _savedTs=localStorage.getItem('bh_last_updated');
+  if(_savedTs){const _lu=document.getElementById('lastUpdated');if(_lu)_lu.textContent=_savedTs;}
   const sfc=getSavedFbConfig();
   if(sfc)initFirebaseDB(sfc);
 }
