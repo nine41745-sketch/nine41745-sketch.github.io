@@ -1374,8 +1374,12 @@ function saveScratchEntries(d){
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // debounce Firebase push — ถ้า push ทันทีทุก keystroke จะ trigger onValue → renderAll() → textarea หาย
   if(window._scratchFbTimer)clearTimeout(window._scratchFbTimer);
-  window._scratchFbTimer=setTimeout(()=>{if(window._fbRef)window._fbRef.set(DB).catch(()=>{});},1500);
+  // Firebase จะ push ตอน onblur เท่านั้น ไม่ push ตอนพิม
   updateScratchTotal(d);
+}
+function flushScratchToFb(d){
+  saveScratchEntries(d);
+  if(window._fbRef){window._skipFbRender=true;window._fbRef.set(DB).catch(()=>{});}
 }
 function sumNums(text){
   return [...(text||'').matchAll(/[0-9]+(?:\.[0-9]+)?/g)].reduce((s,m)=>s+parseFloat(m[0]),0);
@@ -1411,18 +1415,18 @@ function _appendScratchEntry(d,title,nai,jen){
   div.className='scratch-entry';
   div.style.cssText='background:#0d1b2e;border:1px solid #1e3a5f;border-radius:8px;padding:8px 10px;';
   div.innerHTML=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-    <input class="scratch-title" type="text" value="${(title||'').replace(/"/g,'&quot;')}" placeholder="ชื่อสถานที่ / หัวข้อ" style="flex:1;font-size:12px;font-weight:600;padding:4px 8px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;outline:none;" oninput="saveScratchEntries(${d})">
+    <input class="scratch-title" type="text" value="${(title||'').replace(/"/g,'&quot;')}" placeholder="ชื่อสถานที่ / หัวข้อ" style="flex:1;font-size:12px;font-weight:600;padding:4px 8px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;outline:none;" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">
     <button onclick="removeScratchEntry(${d},this)" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;">✕</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
     <div>
       <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👤 นาย</div>
-      <textarea class="scratch-nai" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})">${(nai||'').replace(/</g,'&lt;')}</textarea>
+      <textarea class="scratch-nai" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">${(nai||'').replace(/</g,'&lt;')}</textarea>
       <div class="scratch-sum-n" style="font-size:11px;color:#a5b4fc;margin-top:2px;text-align:right;"></div>
     </div>
     <div>
       <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👩 เจน</div>
-      <textarea class="scratch-jen" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})">${(jen||'').replace(/</g,'&lt;')}</textarea>
+      <textarea class="scratch-jen" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">${(jen||'').replace(/</g,'&lt;')}</textarea>
       <div class="scratch-sum-j" style="font-size:11px;color:#f9a8d4;margin-top:2px;text-align:right;"></div>
     </div>
   </div>`;
@@ -1673,6 +1677,8 @@ function initFirebaseDB(config){
             console.warn('Firebase has fewer months than local — pushing local data to Firebase instead');
             window._fbRef.set(DB);
           }else{
+            // ถ้าเราเป็นคน push เอง (จาก scratch pad) → ข้าม re-render ไม่ให้ textarea หาย
+            if(window._skipFbRender){window._skipFbRender=false;return;}
             // Backup ก่อน overwrite ทุกครั้ง
             if(Object.keys(DB).length>0)localStorage.setItem('bh_data_backup',JSON.stringify(DB));
             DB=data;
