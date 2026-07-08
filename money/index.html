@@ -167,6 +167,22 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 .item-cat{width:150px;}
 .item-acts{display:flex;gap:4px;justify-content:flex-end;width:72px;}
 .empty-items{text-align:center;padding:16px;color:#334155;font-size:13px;}
+/* SELECTION BAR */
+#selBar{position:fixed;bottom:0;left:0;right:0;z-index:300;background:linear-gradient(90deg,#0f1f3d,#1a1040);border-top:2px solid;border-image:linear-gradient(90deg,#6366f1,#ec4899) 1;padding:14px 20px;display:none;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 24px rgba(0,0,0,.6);}
+#selBar.on{display:flex;}
+.sel-info{font-size:13px;color:#94a3b8;}
+.sel-info strong{color:#c7d2fe;font-size:15px;}
+.sel-total{font-size:22px;font-weight:700;color:#34d399;text-shadow:0 0 12px rgba(52,211,153,.4);}
+.btn-clear{padding:6px 16px;border-radius:20px;border:1.5px solid #475569;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#94a3b8;font-family:'Sarabun',sans-serif;transition:all .15s;}
+.btn-clear:hover{border-color:#f87171;color:#f87171;}
+.amt-btn{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid transparent;transition:all .18s;user-select:none;}
+.amt-btn.nai-amt{color:#a5b4fc;background:#1a1f3a;border-color:#3730a3;}
+.amt-btn.nai-amt:hover{background:#2d2f5a;border-color:#818cf8;}
+.amt-btn.nai-amt.sel{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-color:transparent;box-shadow:0 0 10px rgba(99,102,241,.5);}
+.amt-btn.jen-amt{color:#f9a8d4;background:#2a1020;border-color:#831843;}
+.amt-btn.jen-amt:hover{background:#3d1530;border-color:#f472b6;}
+.amt-btn.jen-amt.sel{background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;border-color:transparent;box-shadow:0 0 10px rgba(236,72,153,.5);}
+
 .cat{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
 .c0{background:#0c4a6e;color:#7dd3fc;}.c1{background:#2e1065;color:#c4b5fd;}
 .c2{background:#14532d;color:#86efac;}.c3{background:#713f12;color:#fcd34d;}
@@ -818,7 +834,7 @@ function save(){
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp in header
   const _lu=document.getElementById('lastUpdated');
-  if(_lu){const _n=new Date();const _ts='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';_lu.textContent=_ts;localStorage.setItem('bh_last_updated',_ts);}
+  if(_lu){const _n=new Date();_lu.textContent='อัพเดท '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';}
   if(window._fbRef){
     window._fbRef.set(DB)
       .then(()=>updateSyncBadge('ok'))
@@ -854,8 +870,6 @@ function bootApp(){
   try{load();}catch(e){DB=JSON.parse(JSON.stringify(SEED));}
   try{buildMonthSel();}catch(e){}
   try{renderAll();}catch(e){}
-  const _savedTs=localStorage.getItem('bh_last_updated');
-  if(_savedTs){const _lu=document.getElementById('lastUpdated');if(_lu)_lu.textContent=_savedTs;}
   const sfc=getSavedFbConfig();
   if(sfc)initFirebaseDB(sfc);
 }
@@ -1106,8 +1120,8 @@ function buildItemsRow(d,day){
   const items=(day.items||[]).map(item=>`
     <div class="item-row">
       <div class="item-name">${item.name}</div>
-      <div class="item-nai">${item.nai>0?fmt(item.nai):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#a5b4fc;font-weight:700;">นาย</span></div>
-      <div class="item-jen">${item.jen>0?fmt(item.jen):'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#f9a8d4;font-weight:700;">เจน</span></div>
+      <div class="item-nai">${item.nai>0?`<span class="amt-btn nai-amt" onclick="toggleSelAmt(event,${item.id},'nai',${item.nai},${d})" id="amt-${d}-${item.id}-nai">${fmt(item.nai)}</span>`:'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#a5b4fc;font-weight:700;">นาย</span></div>
+      <div class="item-jen">${item.jen>0?`<span class="amt-btn jen-amt" onclick="toggleSelAmt(event,${item.id},'jen',${item.jen},${d})" id="amt-${d}-${item.id}-jen">${fmt(item.jen)}</span>`:'<span style="color:#334155">-</span>'} <span style="font-size:10px;color:#f9a8d4;font-weight:700;">เจน</span></div>
       <div class="item-cat"><span class="cat ${CAT_CLS[item.cat]||'c5'}">${CAT_EMOJI[item.cat]||''} ${item.cat}</span></div>
       <div class="item-acts">
         <button class="btn btn-secondary btn-sm" onclick="openEditItem(${d},${item.id})">✏️</button>
@@ -1121,20 +1135,20 @@ function buildItemsRow(d,day){
     </div>
     ${items||'<div class="empty-items">📭 ยังไม่มีรายการ</div>'}
   <div style="border-top:1px dashed #1e3a5f;margin:10px 0;"></div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:.04em;">📝 จดคร่าวๆ</div>
-    <button class="btn btn-secondary btn-sm" onclick="addScratchEntry(${d})" style="font-size:11px;padding:3px 8px;">+ เพิ่มหัวข้อ</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:.04em;">📝 จดคร่าวๆ (Scratch pad)</div>
+    <button class="btn btn-secondary btn-sm" onclick="calcScratch(${d},event)" style="font-size:11px;padding:3px 8px;">Σ คำนวณยอด</button>
   </div>
-  <div id="scratch-entries-${d}" style="display:flex;flex-direction:column;gap:8px;"></div>
-  <div id="scratch-total-${d}" style="display:none;font-size:12px;color:#7dd3fc;margin-top:6px;padding:4px 10px;background:#0d1b2e;border-radius:6px;"></div>
-  </div></td>`;
-  setTimeout(()=>renderScratchPad(d),0);
+  <textarea id="scratch-${d}" style="width:100%;height:76px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;font-family:'Sarabun',sans-serif;padding:8px;resize:none;outline:none;line-height:1.7;transition:border-color .2s;" placeholder="จดก่อน เช่น: โลตัส 500\n  นาย: ขนม100 ข้าว250\n  เจน: ขนม100 ข้าว50" oninput="saveScratch(${d},this.value)" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#334155'">${(day.scratch||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+  <div id="scratch-sum-${d}" style="font-size:12px;color:#7dd3fc;margin-top:4px;display:none;padding:4px 8px;background:#0d1b2e;border-radius:6px;"></div>
+  </div></td>\`;
   return tr;
 }
 
 function toggleDay(d){
   const ir=document.getElementById(`ir-${d}`),ar=document.getElementById(`ar-${d}`);
   const o=ir.classList.contains('open');ir.classList.toggle('open',!o);ar.classList.toggle('open',!o);
+  if(o)clearSel();
 }
 function expandDay(d){document.getElementById(`ir-${d}`)?.classList.add('open');document.getElementById(`ar-${d}`)?.classList.add('open');}
 
@@ -1360,85 +1374,24 @@ function deleteCat(i){
 }
 
 // ── SCRATCH PAD ────────────────────────────────────
-function getScratchEntries(d){
-  if(!DB[curMonth]||!DB[curMonth].days[d])return[];
-  return DB[curMonth].days[d].scratchEntries||[];
-}
-function saveScratchEntries(d){
+function saveScratch(d,val){
   if(!DB[curMonth]||!DB[curMonth].days[d])return;
-  const entries=[];
-  document.querySelectorAll(`#scratch-entries-${d} .scratch-entry`).forEach(el=>{
-    entries.push({title:el.querySelector('.scratch-title').value,nai:el.querySelector('.scratch-nai').value,jen:el.querySelector('.scratch-jen').value});
-  });
-  DB[curMonth].days[d].scratchEntries=entries;
+  DB[curMonth].days[d].scratch=val;
+  // save to localStorage only (no Firebase push for scratch pad)
   localStorage.setItem('bh_data2',JSON.stringify(DB));
-  // debounce Firebase push — ถ้า push ทันทีทุก keystroke จะ trigger onValue → renderAll() → textarea หาย
-  if(window._scratchFbTimer)clearTimeout(window._scratchFbTimer);
-  // Firebase จะ push ตอน onblur เท่านั้น ไม่ push ตอนพิม
-  updateScratchTotal(d);
+  if(window._fbRef)window._fbRef.set(DB).catch(()=>{});
 }
-function flushScratchToFb(d){
-  saveScratchEntries(d);
-  if(window._fbRef){window._skipFbRender=true;window._fbRef.set(DB).catch(()=>{});}
-}
-function sumNums(text){
-  return [...(text||'').matchAll(/[0-9]+(?:\.[0-9]+)?/g)].reduce((s,m)=>s+parseFloat(m[0]),0);
-}
-function updateScratchTotal(d){
-  const container=document.getElementById(`scratch-entries-${d}`);
-  const totalEl=document.getElementById(`scratch-total-${d}`);
-  if(!container||!totalEl)return;
-  let tN=0,tJ=0;
-  container.querySelectorAll('.scratch-entry').forEach(el=>{
-    const n=sumNums(el.querySelector('.scratch-nai').value);
-    const j=sumNums(el.querySelector('.scratch-jen').value);
-    el.querySelector('.scratch-sum-n').textContent=n>0?'฿'+Math.round(n).toLocaleString():'';
-    el.querySelector('.scratch-sum-j').textContent=j>0?'฿'+Math.round(j).toLocaleString():'';
-    tN+=n;tJ+=j;
-  });
-  if(tN>0||tJ>0){
-    totalEl.textContent='รวมทั้งวัน — นาย: ฿'+Math.round(tN).toLocaleString()+' · เจน: ฿'+Math.round(tJ).toLocaleString()+' · รวม: ฿'+Math.round(tN+tJ).toLocaleString();
-    totalEl.style.display='block';
-  }else{totalEl.style.display='none';}
-}
-function renderScratchPad(d){
-  const container=document.getElementById(`scratch-entries-${d}`);
-  if(!container)return;
-  container.innerHTML='';
-  (getScratchEntries(d)||[]).forEach(e=>_appendScratchEntry(d,e.title,e.nai,e.jen));
-  updateScratchTotal(d);
-}
-function _appendScratchEntry(d,title,nai,jen){
-  const container=document.getElementById(`scratch-entries-${d}`);
-  if(!container)return;
-  const div=document.createElement('div');
-  div.className='scratch-entry';
-  div.style.cssText='background:#0d1b2e;border:1px solid #1e3a5f;border-radius:8px;padding:8px 10px;';
-  div.innerHTML=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-    <input class="scratch-title" type="text" value="${(title||'').replace(/"/g,'&quot;')}" placeholder="ชื่อสถานที่ / หัวข้อ" style="flex:1;font-size:12px;font-weight:600;padding:4px 8px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;outline:none;" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">
-    <button onclick="removeScratchEntry(${d},this)" style="background:none;border:none;color:#475569;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;">✕</button>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <div>
-      <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👤 นาย</div>
-      <textarea class="scratch-nai" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">${(nai||'').replace(/</g,'&lt;')}</textarea>
-      <div class="scratch-sum-n" style="font-size:11px;color:#a5b4fc;margin-top:2px;text-align:right;"></div>
-    </div>
-    <div>
-      <div style="font-size:10px;color:#64748b;margin-bottom:3px;">👩 เจน</div>
-      <textarea class="scratch-jen" rows="3" style="width:100%;font-size:12px;padding:5px 7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:'Sarabun',sans-serif;resize:none;outline:none;line-height:1.6;" placeholder="รายการ 000" oninput="saveScratchEntries(${d})" onblur="flushScratchToFb(${d})">${(jen||'').replace(/</g,'&lt;')}</textarea>
-      <div class="scratch-sum-j" style="font-size:11px;color:#f9a8d4;margin-top:2px;text-align:right;"></div>
-    </div>
-  </div>`;
-  container.appendChild(div);
-}
-function addScratchEntry(d){
-  _appendScratchEntry(d,'','','');
-  saveScratchEntries(d);
-}
-function removeScratchEntry(d,btn){
-  btn.closest('.scratch-entry').remove();
-  saveScratchEntries(d);
+function calcScratch(d,ev){
+  ev.stopPropagation();
+  const el=document.getElementById('scratch-'+d);
+  if(!el)return;
+  const nums=[...el.value.matchAll(/[0-9]+(?:\.[0-9]+)?/g)].map(m=>parseFloat(m[0]));
+  const sumEl=document.getElementById('scratch-sum-'+d);
+  if(!sumEl)return;
+  if(!nums.length){sumEl.textContent='ไม่พบตัวเลข';sumEl.style.display='block';return;}
+  const total=nums.reduce((s,n)=>s+n,0);
+  sumEl.textContent='ยอดรวมตัวเลขทั้งหมด: ฿'+Math.round(total).toLocaleString('th-TH')+' ('+nums.length+' รายการ)';
+  sumEl.style.display='block';
 }
 
 // ── SEARCH ─────────────────────────────────────────
@@ -1677,8 +1630,6 @@ function initFirebaseDB(config){
             console.warn('Firebase has fewer months than local — pushing local data to Firebase instead');
             window._fbRef.set(DB);
           }else{
-            // ถ้าเราเป็นคน push เอง (จาก scratch pad) → ข้าม re-render ไม่ให้ textarea หาย
-            if(window._skipFbRender){window._skipFbRender=false;return;}
             // Backup ก่อน overwrite ทุกครั้ง
             if(Object.keys(DB).length>0)localStorage.setItem('bh_data_backup',JSON.stringify(DB));
             DB=data;
@@ -1776,6 +1727,32 @@ function exportData(){
 }
 
 // IMPORT
+
+// ── AMOUNT SELECTION ──────────────────────────────
+window._selAmts=[];
+function toggleSelAmt(e,id,type,val,day){
+  e.stopPropagation();
+  const key=`${day}-${id}-${type}`;
+  const idx=window._selAmts.findIndex(x=>x.key===key);
+  const el=document.getElementById(`amt-${day}-${id}-${type}`);
+  if(idx>=0){window._selAmts.splice(idx,1);if(el)el.classList.remove('sel');}
+  else{window._selAmts.push({key,val});if(el)el.classList.add('sel');}
+  updateSelBar();
+}
+function clearSel(){
+  window._selAmts.forEach(x=>{const el=document.getElementById('amt-'+x.key);if(el)el.classList.remove('sel');});
+  window._selAmts=[];
+  updateSelBar();
+}
+function updateSelBar(){
+  const bar=document.getElementById('selBar');if(!bar)return;
+  if(window._selAmts.length===0){bar.classList.remove('on');return;}
+  const total=window._selAmts.reduce((s,x)=>s+x.val,0);
+  document.getElementById('selCount').textContent=window._selAmts.length;
+  document.getElementById('selTotal').textContent='฿'+Math.round(total).toLocaleString();
+  bar.classList.add('on');
+}
+
 function importData(e){
   const file=e.target.files[0];
   if(!file)return;
@@ -1800,6 +1777,14 @@ function importData(e){
   e.target.value='';
 }
 </script>
+
+
+<!-- SELECTION BAR -->
+<div id="selBar">
+  <div class="sel-info">เลือก <strong id="selCount">0</strong> ยอด</div>
+  <div class="sel-total" id="selTotal">฿0</div>
+  <button class="btn-clear" onclick="clearSel()">✕ ล้าง</button>
+</div>
 
 
 <!-- AUTO-LOGOUT WARNING TOAST -->
