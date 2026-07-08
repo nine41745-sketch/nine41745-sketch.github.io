@@ -1397,7 +1397,7 @@ function updateScratchTotal(d){
     tN+=n;tJ+=j;
   });
   if(tN>0||tJ>0){
-    totalEl.textContent='รวมทั้งวัน — นาย: ฿'+Math.round(tN).toLocaleString()+' · เจน: ฿'+Math.round(tJ).toLocaleString();
+    totalEl.textContent='รวมทั้งวัน — นาย: ฿'+Math.round(tN).toLocaleString()+' · เจน: ฿'+Math.round(tJ).toLocaleString()+' · รวม: ฿'+Math.round(tN+tJ).toLocaleString();
     totalEl.style.display='block';
   }else{totalEl.style.display='none';}
 }
