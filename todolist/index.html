@@ -421,6 +421,7 @@ if(!tasks){
 }
 // ── FIREBASE ───────────────────────────────────────
 let _fbApp=null,_fbDb=null,_fbRef=null;
+let _pageLoading=true;
 
 tasks.forEach(t=>{
   if(t.pri==='today') t.pri='high';
@@ -515,8 +516,10 @@ function initFirebaseDB(config){
             if(t.pinned===undefined)t.pinned=false;
             if(t.cat===undefined)t.cat=4;
           });
+          _pageLoading=true; // ป้องกัน updateLastSaved ตอน sync
           localStorage.setItem('todo_tasks',JSON.stringify(tasks));
           render();
+          _pageLoading=false;
         }
       }else if(!data){_fbRef.set(tasks);}
       updateSyncBadge('ok');
@@ -550,7 +553,7 @@ function updateLastSaved(){
 function save(){
   localStorage.setItem('todo_tasks',JSON.stringify(tasks));
   if(_fbRef){_fbRef.set(tasks).catch(e=>console.error('Firebase save error:',e));}
-  updateLastSaved();
+  if(!_pageLoading) updateLastSaved();
 }
 
 (function(){
@@ -847,5 +850,6 @@ render();
   const el = document.getElementById('lastUpdatedLabel');
   if(el && saved) el.textContent = 'อัพเดทล่าสุด: ' + saved;
 })();
+_pageLoading = false;
 </script>
 </body></html>
