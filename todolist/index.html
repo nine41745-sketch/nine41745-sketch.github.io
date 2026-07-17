@@ -6,7 +6,92 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:#0a0f1e;color:#e2e8f0;font-family:'Sarabun',sans-serif;min-height:100vh;padding:24px 16px;}
+  body{background:#0a0f1e;color:#e2e8f0;font-family:'Sarabun',sans-serif;min-height:100vh;padding:24px 16px;transition:background .3s,color .3s;}
+  body.light{background:#f1f5f9;color:#1e293b;}
+  body.light .task-item{background:#ffffff;border-color:#e2e8f0;}
+  body.light .task-item:hover{background:#f8fafc;}
+  body.light .todo-item{background:#ffffff;border-color:#e2e8f0;color:#1e293b;}
+  body.light .todo-item:hover{background:#f8fafc;}
+  body.light .inp{background:#ffffff;border-color:#cbd5e1;color:#1e293b;}
+  body.light .inp:focus{border-color:#818cf8;}
+  body.light .toolbar-btn{background:#ffffff;border-color:#e2e8f0;color:#475569;}
+  body.light .toolbar-btn:hover{border-color:#818cf8;color:#818cf8;}
+  body.light .fb-btn{background:#ffffff;border-color:#e2e8f0;color:#475569;}
+  body.light .fb-btn.fb-on{background:#f0fdf4;color:#16a34a;border-color:#16a34a;}
+  body.light .summary-bar{background:#f8fafc;border-color:#e2e8f0;}
+  body.light .summary-card{background:#ffffff;border-color:#e2e8f0;}
+  body.light .filter-row .filter-btn{background:#ffffff;border-color:#e2e8f0;color:#64748b;}
+  body.light .filter-btn.active{background:#818cf820;border-color:#818cf8;color:#818cf8;}
+  body.light .modal-overlay{background:#00000060;}
+  body.light .modal{background:#ffffff;border-color:#e2e8f0;}
+  body.light .lbl{color:#475569;}
+  body.light .task-meta{color:#64748b;}
+  body.light h1{background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  body.light .subtitle{color:#64748b;}
+  body.light .last-updated{color:#94a3b8;}
+  body.light .note-text{color:#64748b;}
+  body.light .stat-row{color:#64748b;}
+  body.light .toast{background:#1e293b;}
+  body.light .add-form{background:#ffffff;border-color:#e2e8f0;}
+  body.light .sel{background:#ffffff;border-color:#cbd5e1;color:#1e293b;}
+  body.light .btn-today{background:#f1f5f9;border-color:#cbd5e1;color:#64748b;}
+  body.light .btn-today:hover,.btn-today.active{background:#818cf820;border-color:#818cf8;color:#818cf8;}
+  body.light .btn-add{background:linear-gradient(135deg,#818cf8,#c084fc);}
+  body.light .filter-row{background:transparent;}
+  body.light .stats-row{color:#64748b;}
+  body.light .clear-done-btn{background:#f1f5f9;border-color:#e2e8f0;color:#64748b;}
+  body.light .clear-done-btn:hover{border-color:#f87171;color:#f87171;}
+  body.light .task-text{color:#1e293b;}
+  body.light .task-text.done-text{color:#94a3b8;}
+  body.light .pin-btn{color:#94a3b8;}
+  body.light .edit-btn{color:#818cf8;}
+  body.light .del-btn{color:#f87171;}
+  body.light .due-badge{background:#dbeafe;color:#1e40af;}
+  body.light .due-badge.overdue{background:#fee2e2;color:#991b1b;}
+  body.light .confirm-box{background:#ffffff;border-color:#e2e8f0;}
+  body.light .confirm-box h3{color:#1e293b;}
+  body.light .confirm-box p{color:#64748b;}
+  body.light .fb-modal{background:#ffffff;border-color:#e2e8f0;}
+  body.light .fb-modal h3{color:#1e293b;}
+  body.light .fb-textarea{background:#f8fafc;border-color:#cbd5e1;color:#1e293b;}
+  body.light .search-wrap input{background:#ffffff;border-color:#e2e8f0;color:#1e293b;}
+  body.light .search-icon{color:#94a3b8;}
+  body.light .add-card{background:#ffffff;border-color:#e2e8f0;}
+  body.light .sel{background:#ffffff;border-color:#cbd5e1;color:#1e293b;}
+  body.light .btn-today{background:#f1f5f9;border-color:#cbd5e1;color:#64748b;}
+  body.light .btn-add{background:linear-gradient(135deg,#818cf8,#c084fc);}
+  body.light .filter-btn{background:#f1f5f9;border-color:#e2e8f0;color:#64748b;}
+  body.light .filter-btn.active{background:#818cf820;border-color:#818cf8;color:#4f46e5;}
+  body.light .filter-btn span{background:#e2e8f0!important;color:#475569!important;}
+  body.light .task-item{background:#ffffff;border-color:#e2e8f0;color:#1e293b;}
+  body.light .task-item:hover{background:#f8fafc;}
+  body.light .todo-item{background:#ffffff!important;border-color:#e2e8f0!important;color:#1e293b!important;}
+  body.light .todo-item:hover{background:#f8fafc!important;}
+  body.light .task-text{color:#1e293b;}
+  body.light .task-meta span{color:#64748b;}
+  body.light .stats{color:#64748b;}
+  body.light .clear-done-btn{background:#f1f5f9;border-color:#e2e8f0;color:#64748b;}
+  body.light .due-tag{background:#dbeafe;color:#1e40af;}
+  body.light .due-tag.overdue{background:#fee2e2;color:#991b1b;}
+  body.light .confirm-box{background:#ffffff;border-color:#e2e8f0;color:#1e293b;}
+  body.light .modal{background:#ffffff;border-color:#e2e8f0;}
+  body.light .modal h3{color:#1e293b;}
+  body.light .fb-modal{background:#ffffff;border-color:#e2e8f0;}
+  body.light .fb-modal h3{color:#1e293b;}
+  body.light .fb-textarea{background:#f8fafc;border-color:#cbd5e1;color:#1e293b;}
+  body.light .summary-bar{background:#f8fafc;border-color:#e2e8f0;}
+  body.light .summary-card{background:#ffffff;border-color:#e2e8f0;color:#1e293b;}
+  body.light .dup-warn{color:#dc2626;}
+  body.light .search-wrap input{background:#ffffff!important;border-color:#e2e8f0!important;color:#1e293b!important;}
+  body.light .toolbar-btn{background:#ffffff!important;border-color:#e2e8f0!important;color:#475569!important;}
+  body.light .filter-btn{background:#f1f5f9!important;border-color:#e2e8f0!important;color:#64748b!important;}
+  body.light .filter-btn.active{background:#818cf820!important;border-color:#818cf8!important;color:#4f46e5!important;}
+  body.light .add-card{background:#ffffff!important;border-color:#e2e8f0!important;}
+  body.light .inp{background:#ffffff!important;border-color:#cbd5e1!important;color:#1e293b!important;}
+  body.light .sel{background:#ffffff!important;border-color:#cbd5e1!important;color:#1e293b!important;}
+  body.light .btn-today{background:#f1f5f9!important;border-color:#cbd5e1!important;color:#64748b!important;}
+  body.light .summary-bar{background:#f8fafc!important;border-color:#e2e8f0!important;}
+  body.light .lbl{color:#475569!important;}
   .container{max-width:640px;margin:0 auto;}
   h1{font-size:24px;font-weight:700;margin-bottom:4px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
   .subtitle{font-size:13px;color:#475569;margin-bottom:4px;}
@@ -133,6 +218,7 @@
       <input id="searchInp" placeholder="ค้นหางาน..." oninput="render()">
     </div>
     <button class="toolbar-btn" onclick="toggleSummary()">📊 สรุป</button>
+    <button class="toolbar-btn" id="themeBtn" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">🌙</button>
     <button class="fb-btn fb-on" id="fbBtn" onclick="openFbModal()">☁️ Sync <span id="fbStatus">🟢</span></button>
     <button class="toolbar-btn" onclick="exportData()">📤 ส่งออก</button>
     <button class="toolbar-btn" onclick="document.getElementById(&#39;importFile&#39;).click()">📥 นำเข้า</button>
@@ -550,6 +636,21 @@ function updateLastSaved(){
   if(el) el.textContent = 'อัพเดทล่าสุด: ' + val;
 }
 
+// ── THEME ─────────────────────────────────────────
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  localStorage.setItem('todo_theme', isLight?'light':'dark');
+  document.getElementById('themeBtn').textContent=isLight?'☀️':'🌙';
+}
+function loadTheme(){
+  const theme=localStorage.getItem('todo_theme')||'dark';
+  if(theme==='light'){
+    document.body.classList.add('light');
+    const btn=document.getElementById('themeBtn');
+    if(btn)btn.textContent='☀️';
+  }
+}
+
 function save(){
   localStorage.setItem('todo_tasks',JSON.stringify(tasks));
   if(_fbRef){_fbRef.set(tasks).catch(e=>console.error('Firebase save error:',e));}
@@ -851,5 +952,6 @@ render();
   if(el && saved) el.textContent = 'อัพเดทล่าสุด: ' + saved;
 })();
 _pageLoading = false;
+loadTheme();
 </script>
 </body></html>
