@@ -20,6 +20,7 @@ function saveScratchTopics(d){
     topics.push({title:el.querySelector('.scratch-topic-title').value||'',nai:el.querySelector('.scratch-ta-nai').value||'',jen:el.querySelector('.scratch-ta-jen').value||''});
   });
   day.scratchTopics=topics;
+  window._skipFbRender=true;
   save();
   updateScratchDayTotal(d);
   if(window._scratchFbTimer)clearTimeout(window._scratchFbTimer);
@@ -296,38 +297,55 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
 .arrow{display:inline-block;color:#475569;transition:transform .2s,color .2s;font-size:12px;margin-right:2px;}
 .arrow.open{transform:rotate(90deg);color:#818cf8;}
 
-@media(max-width:900px){.cards-row{grid-template-columns:repeat(2,1fr);}.charts-row,.charts-cmp,.summary-grid,.cards-cmp{grid-template-columns:1fr;}}
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .cards-row{grid-template-columns:repeat(2,1fr);}
+  .charts-row,.charts-cmp,.summary-grid,.cards-cmp{grid-template-columns:1fr;}
+}
 @media(max-width:600px){
-  .cards-row{grid-template-columns:1fr 1fr;}
-  .content{padding:10px;}
+  /* layout */
+  .content{padding:8px 10px;}
   .header{padding:8px 12px;}
-  .header-title{font-size:15px;}
-  .header-right{gap:5px;}
+  .header-title{font-size:14px;}
+  .header-right{gap:4px;}
+  /* cards */
+  .cards-row{grid-template-columns:1fr 1fr;}
+  .card{padding:10px 12px;}
+  .card-value{font-size:20px;}
+  /* buttons */
   .btn{padding:6px 10px;font-size:12px;}
-  .month-select{padding:6px 8px;font-size:12px;max-width:120px;}
-  /* ซ่อนปุ่มรอง ให้เหลือแค่สำคัญ */
   .btn-hide-mobile{display:none!important;}
-  /* ปุ่มจัดการในตาราง */
-  .btn-sm{padding:6px 8px;font-size:13px;}
-  /* item row บนมือถือ */
+  .btn-sm{padding:5px 8px;font-size:12px;}
+  /* month select */
+  .month-select{padding:6px 8px;font-size:12px;max-width:130px;}
+  /* tabs — scrollable */
+  .tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;padding-bottom:2px;flex-wrap:nowrap;}
+  .tab-btn{padding:7px 10px;font-size:12px;white-space:nowrap;flex-shrink:0;}
+  /* table */
+  .table-card{overflow-x:auto;}
+  thead th,tbody td{padding:7px 8px;font-size:12px;}
+  /* item row */
   .item-row{flex-wrap:wrap;gap:4px;}
   .item-name{width:100%;font-size:13px;}
-  .item-nai,.item-jen{width:auto;flex:1;font-size:12px;}
+  .item-nai,.item-jen{flex:1;font-size:12px;}
   .item-cat{width:100%;margin-top:2px;}
-  .item-acts{width:auto;}
-  /* items wrap padding ลด */
-  .items-wrap{padding:8px 10px 12px 10px;}
-  /* tabs */
-  .tab-btn{padding:7px 8px;font-size:12px;}
-  /* modal */
-  .modal{padding:20px 16px;}
-  /* table scroll */
-  .table-card{overflow-x:auto;}
-  thead th,tbody td{padding:8px 10px;font-size:12px;}
-  /* summary grid */
+  .items-wrap{padding:8px 10px 12px;}
+  /* scratch */
+  .scratch-cols{grid-template-columns:1fr;}
+  /* summary */
   .summary-grid{grid-template-columns:1fr;}
-  /* cards summary 5col → 2col */
   #summary-totals-row{grid-template-columns:repeat(2,1fr)!important;}
+  /* modal */
+  .modal{padding:18px 14px;width:calc(100vw - 24px);}
+  .row2{grid-template-columns:1fr;}
+  /* multi-add */
+  .multi-row-grid{grid-template-columns:1fr 1fr 60px 60px 28px;}
+  /* trends chart */
+  .trends-chart-card{padding:12px;}
+}
+@media(min-width:601px){
+  /* desktop — ซ่อนปุ่ม ⋯ mobile menu */
+  #moreBtn{display:none!important;}
 }
 
 .search-wrap{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
@@ -639,16 +657,12 @@ body.light-mode .copy-day-row{border-bottom-color:#f1f5f9;color:#374151;}
       </div>
       <button class="btn btn-success" onclick="openAddMonthModal()">📅 เดือนใหม่</button>
       <button class="btn btn-secondary btn-hide-mobile" onclick="openCatsModal()" title="จัดการหมวดหมู่">🏷️ หมวด</button>
-      <button class="btn btn-secondary btn-hide-mobile" onclick="openRecurringModal()" title="รายจ่ายประจำ">🔄 ประจำ</button>
-      <button class="btn btn-secondary btn-hide-mobile" onclick="openCopyMonthModal()" title="copy รายการจากเดือนที่แล้ว">📅 Copy เดือน</button>
       <button class="btn btn-secondary btn-hide-mobile" onclick="exportData()" title="ส่งออกข้อมูลเป็นไฟล์ JSON">💾 Export</button>
       <label class="btn btn-secondary btn-hide-mobile" style="cursor:pointer;" title="นำเข้าข้อมูลจากไฟล์ JSON">📂 Import<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
       <button class="btn btn-firebase fb-on" id="fbBtn" onclick="openFbModal()" title="ตั้งค่า Firebase Sync">☁️ Sync <span id="fbStatus" title="ซิงค์แล้ว ✓">🟢</span></button>
       <button class="btn btn-secondary" id="moreBtn" onclick="toggleMobileMenu()" style="display:none;">⋯</button>
       <div id="mobileMenu" style="display:none;position:fixed;top:54px;right:12px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:8px;z-index:150;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5);">
         <button class="btn btn-secondary" onclick="openCatsModal();closeMobileMenu()" style="width:100%;margin-bottom:6px;text-align:left;">🏷️ จัดการหมวด</button>
-        <button class="btn btn-secondary" onclick="openRecurringModal();closeMobileMenu()" style="width:100%;margin-bottom:6px;text-align:left;">🔄 รายจ่ายประจำ</button>
-        <button class="btn btn-secondary" onclick="openCopyMonthModal();closeMobileMenu()" style="width:100%;margin-bottom:6px;text-align:left;">📅 Copy เดือน</button>
         <button class="btn btn-secondary" onclick="exportData();closeMobileMenu()" style="width:100%;margin-bottom:6px;text-align:left;">💾 Export</button>
         <label class="btn btn-secondary" style="width:100%;cursor:pointer;text-align:left;">📂 Import<input type="file" accept=".json" onchange="importData(event);closeMobileMenu()" style="display:none;"></label>
       </div>
@@ -1039,35 +1053,6 @@ body.light-mode .copy-day-row{border-bottom-color:#f1f5f9;color:#374151;}
 </div>
 
 <!-- RECURRING MODAL -->
-<div class="overlay" id="recurringModal">
-  <div class="modal">
-    <h3>🔄 รายจ่ายประจำ</h3>
-    <p style="font-size:12px;color:#64748b;margin-bottom:14px;">บันทึกรายการที่จ่ายทุกเดือน กด "โหลดเข้าวัน" เพื่อเพิ่มทีเดียว</p>
-    <div id="recurring-list"></div>
-    <button class="btn btn-primary" onclick="addRecurring()" style="width:100%;margin-top:12px;">+ เพิ่มรายจ่ายประจำ</button>
-    <div class="modal-acts">
-      <button class="btn btn-secondary" onclick="hideModal(&#39;recurringModal&#39;)">ปิด</button>
-      <button class="btn btn-success" onclick="loadRecurring()">📥 โหลดเข้าวัน...</button>
-    </div>
-  </div>
-</div>
-
-<!-- RECURRING ITEM MODAL -->
-<div class="overlay" id="recurringItemModal">
-  <div class="modal modal-sm">
-    <h3 id="recModalTitle">➕ เพิ่มรายจ่ายประจำ</h3>
-    <div class="fg"><label class="lbl">ชื่อรายการ</label><input class="inp" id="recName" placeholder="เช่น ค่าไฟ"></div>
-    <div class="row2">
-      <div class="fg"><label class="lbl">จำนวน นาย (฿)</label><input class="inp" type="number" id="recNai" placeholder="0" min="0"></div>
-      <div class="fg"><label class="lbl">จำนวน เจน (฿)</label><input class="inp" type="number" id="recJen" placeholder="0" min="0"></div>
-    </div>
-    <div class="fg"><label class="lbl">หมวดหมู่</label><select class="sel cat-select" id="recCat"><option value="อาหาร/เครื่องดื่ม">🍜 อาหาร/เครื่องดื่ม</option><option value="ช้อปปิ้ง/ออนไลน์">🛒 ช้อปปิ้ง/ออนไลน์</option><option value="ของใช้สัตว์เลี้ยง">🐾 ของใช้สัตว์เลี้ยง</option><option value="เดินทาง/รถยนต์">🚗 เดินทาง/รถยนต์</option><option value="ค่าใช้จ่ายจำเป็น">💡 ค่าใช้จ่ายจำเป็น</option><option value="อื่น ๆ/ฟุ่มเฟือย">🎮 อื่น ๆ/ฟุ่มเฟือย</option><option value="ค่าน้ำมันรถมอเตอร์ไซด์">🛵 ค่าน้ำมันรถมอเตอร์ไซด์</option><option value="ค่าน้ำมันรถยนต์">⛽ ค่าน้ำมันรถยนต์</option><option value="ค่าอะไหล่แต่งรถยนต์">🔧 ค่าอะไหล่แต่งรถยนต์</option><option value="ค่าบำรุงรักษารถมอเตอร์ไซด์">🔩 ค่าบำรุงรักษารถมอเตอร์ไซด์</option><option value="ค่าบำรุงรักษารถยนต์">🛠️ ค่าบำรุงรักษารถยนต์</option><option value="เครื่องสำอาง/อาหารเสริม">💄 เครื่องสำอาง/อาหารเสริม</option><option value="เสื้อผ้า/กางเกง">👕 เสื้อผ้า/กางเกง</option><option value="ของใช้">🧴 ของใช้</option><option value="สุขภาพ">🏥 สุขภาพ</option></select></div>
-    <div class="modal-acts">
-      <button class="btn btn-secondary" onclick="hideModal(&#39;recurringItemModal&#39;)">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveRecurringItem()">💾 บันทึก</button>
-    </div>
-  </div>
-</div>
 
 <script>
 const THAI_M=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -1666,7 +1651,7 @@ function initCats(){
 }
 function syncSettingsToFirebase(){
   if(!window._fbDb)return;
-  const settings={cats:_catsData,recurring:getRecurring(),budget:getBudget()};
+  const settings={cats:_catsData,budget:getBudget()};
   window._fbDb.ref('lucky_uefa_settings').set(settings).catch(e=>console.error('Settings sync error:',e));
 }
 function saveCatsData(){localStorage.setItem('bh_cats',JSON.stringify(_catsData));initCats();syncSettingsToFirebase();}
@@ -1704,78 +1689,6 @@ function clearSearch(){
   if(el){el.value='';renderTable();}
 }
 
-// ── RECURRING EXPENSES ─────────────────────────────
-let editRecurringCtx={idx:null};
-function getRecurring(){try{return JSON.parse(localStorage.getItem('bh_recurring'))||[];}catch(e){return[];}}
-function saveRecurring(list){localStorage.setItem('bh_recurring',JSON.stringify(list));syncSettingsToFirebase();}
-function openRecurringModal(){renderRecurringList();showModal('recurringModal');}
-function renderRecurringList(){
-  const el=document.getElementById('recurring-list');if(!el)return;
-  const list=getRecurring();
-  if(!list.length){el.innerHTML='<div style="text-align:center;padding:20px;color:#334155;font-size:13px;">ยังไม่มีรายจ่ายประจำ</div>';return;}
-  el.innerHTML=list.map((r,i)=>`
-    <div class="recurring-row">
-      <div style="flex:1;">
-        <div style="font-size:13px;color:#cbd5e1;font-weight:600;">${r.name}</div>
-        <div style="font-size:11px;color:#475569;">${CAT_EMOJI[r.cat]||'📌'} ${r.cat} &nbsp;|&nbsp; <span style="color:#a5b4fc">นาย ฿${r.nai||0}</span> · <span style="color:#f9a8d4">เจน ฿${r.jen||0}</span></div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="editRecurring(${i})">✏️</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteRecurring(${i})">🗑</button>
-    </div>`).join('');
-}
-function addRecurring(){
-  editRecurringCtx={idx:null};
-  document.getElementById('recModalTitle').textContent='➕ เพิ่มรายจ่ายประจำ';
-  ['recName','recNai','recJen'].forEach(id=>document.getElementById(id).value='');
-  rebuildCatSelects();
-  showModal('recurringItemModal');
-  setTimeout(()=>document.getElementById('recName').focus(),100);
-}
-function editRecurring(i){
-  const r=getRecurring()[i];if(!r)return;
-  editRecurringCtx={idx:i};
-  document.getElementById('recModalTitle').textContent='✏️ แก้ไขรายจ่ายประจำ';
-  document.getElementById('recName').value=r.name;
-  document.getElementById('recNai').value=r.nai||'';
-  document.getElementById('recJen').value=r.jen||'';
-  rebuildCatSelects();
-  document.getElementById('recCat').value=r.cat;
-  showModal('recurringItemModal');
-}
-function saveRecurringItem(){
-  const name=document.getElementById('recName').value.trim();
-  if(!name){alert('กรุณาใส่ชื่อรายการ');return;}
-  const jen=parseFloat(document.getElementById('recJen').value)||0;
-  const nai=parseFloat(document.getElementById('recNai').value)||0;
-  const cat=document.getElementById('recCat').value;
-  const list=getRecurring();
-  if(editRecurringCtx.idx===null){list.push({name,jen,nai,cat});}
-  else{list[editRecurringCtx.idx]={name,jen,nai,cat};}
-  saveRecurring(list);hideModal('recurringItemModal');renderRecurringList();
-}
-function deleteRecurring(i){
-  if(!confirm('ลบรายการนี้?'))return;
-  const list=getRecurring();list.splice(i,1);saveRecurring(list);renderRecurringList();
-}
-function loadRecurring(){
-  const list=getRecurring();
-  if(!list.length){alert('ยังไม่มีรายจ่ายประจำ');return;}
-  const today=new Date().getDate();
-  const raw=prompt('โหลดเข้าวันที่ (1-31)',today);
-  if(raw===null)return;
-  const d=parseInt(raw);
-  if(!d||d<1||d>31){alert('วันที่ไม่ถูกต้อง');return;}
-  if(!DB[curMonth]){alert('กรุณาเลือกเดือนก่อน');return;}
-  if(!DB[curMonth].days)DB[curMonth].days={};
-  if(!DB[curMonth].days[d])DB[curMonth].days[d]={incomeNai:0,incomeJen:0,deducted:0,items:[]};
-  const day=DB[curMonth].days[d];
-  let maxId=(day.items||[]).reduce((m,i)=>Math.max(m,i.id),0);
-  list.forEach(r=>{day.items=day.items||[];day.items.push({id:++maxId,name:r.name,jen:r.jen||0,nai:r.nai||0,cat:r.cat});});
-  save();hideModal('recurringModal');renderAll();
-  setTimeout(()=>expandDay(d),80);
-  alert('✅ โหลด '+list.length+' รายการเข้าวันที่ '+d+' สำเร็จ!');
-}
-
 // ── BUDGET ─────────────────────────────────────────
 function getBudget(){try{return JSON.parse(localStorage.getItem('bh_budget'))||{};}catch(e){return{};}}
 function saveBudget(b){localStorage.setItem('bh_budget',JSON.stringify(b));syncSettingsToFirebase();}
@@ -1809,7 +1722,7 @@ function renderBudget(){
       el2.innerHTML+=`<div class="cat-bar-row">
         <div class="cat-bar-label">
           <div class="cat-bar-name">${CAT_EMOJI[c]||''} ${c}${over?' <span style="color:#f87171;font-size:10px;">⚠️ เกินงบ</span>':''}</div>
-          <div class="cat-bar-val ${over?'budget-over':''}" style="color:${col}">${fmt(used)}${lim?' / '+fmt(lim):''}</div>
+          <div class="cat-bar-val ${over?'budget-over':''}" style="color:${col}">${lim?'<span style="color:#64748b;font-size:10px;">งบ</span> '+fmt(lim)+' <span style="color:#64748b;font-size:10px;">/ จริง</span> '+fmt(used)+(over?'':' <span style="color:#34d399;font-size:10px;">('+pct+'%)</span>'):fmt(used)}</div>
         </div>
         <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${lim?pct:100}%;background:${lim?col:'#1e3a5f'}"></div></div>
       </div>`;
@@ -1973,12 +1886,6 @@ function initFirebaseDB(config){
           initCats();renderAll();
         }
       }
-      if(s.recurring&&Array.isArray(s.recurring)){
-        const incoming=JSON.stringify(s.recurring);
-        if(incoming!==(localStorage.getItem('bh_recurring')||'[]')){
-          localStorage.setItem('bh_recurring',JSON.stringify(s.recurring));
-        }
-      }
       if(s.budget&&typeof s.budget==='object'){
         const incoming=JSON.stringify(s.budget);
         if(incoming!==(localStorage.getItem('bh_budget')||'{}')){
@@ -2130,15 +2037,15 @@ function renderTrends(){
     const tr=document.createElement('tr');
     const total=naiData[i]+jenData[i];
     tr.innerHTML=`<td><strong>${DB[k].name}</strong></td>
-      <td class="nai-val">${fmt(naiData[i])}</td>
-      <td class="jen-val">${fmt(jenData[i])}</td>
-      <td style="font-weight:700;color:#34d399;">${fmt(total)}</td>`;
+      <td class="nai-val" style="text-align:right;">${fmt(naiData[i])}</td>
+      <td class="jen-val" style="text-align:right;">${fmt(jenData[i])}</td>
+      <td style="font-weight:700;color:#34d399;text-align:right;">${fmt(total)}</td>`;
     tbody.appendChild(tr);
   });
   // Total row
   const totN=naiData.reduce((a,b)=>a+b,0),totJ=jenData.reduce((a,b)=>a+b,0);
   const totRow=document.createElement('tr');totRow.style.cssText='font-weight:700;background:#162032;';
-  totRow.innerHTML=`<td>📊 รวมทุกเดือน</td><td class="nai-val">${fmt(totN)}</td><td class="jen-val">${fmt(totJ)}</td><td style="color:#34d399;">${fmt(totN+totJ)}</td>`;
+  totRow.innerHTML=`<td>📊 รวมทุกเดือน</td><td class="nai-val" style="text-align:right;">${fmt(totN)}</td><td class="jen-val" style="text-align:right;">${fmt(totJ)}</td><td style="color:#34d399;text-align:right;">${fmt(totN+totJ)}</td>`;
   tbody.appendChild(totRow);
 }
 
@@ -2333,70 +2240,6 @@ function saveItemAsTemplate(){
 // Hook openAddItem to render templates
 
 
-// ── COPY FROM LAST MONTH ───────────────────────────────────────
-function openCopyMonthModal(){
-  const sel=document.getElementById('copyFromMonth');if(!sel)return;
-  sel.innerHTML='';
-  Object.keys(DB).sort().forEach(k=>{
-    if(k===curMonth)return;
-    const o=document.createElement('option');o.value=k;o.textContent=DB[k].name;sel.appendChild(o);
-  });
-  if(!sel.options.length){alert('ไม่มีเดือนอื่นให้ copy');return;}
-  // Auto-select previous month
-  const months=Object.keys(DB).sort();
-  const curIdx=months.indexOf(curMonth);
-  if(curIdx>0)sel.value=months[curIdx-1];
-  document.getElementById('copyToDay').value=new Date().getDate();
-  renderCopyDaysList();
-  showModal('copyMonthModal');
-}
-function renderCopyDaysList(){
-  const srcMonth=document.getElementById('copyFromMonth').value;
-  const el=document.getElementById('copyDaysList');if(!el)return;
-  if(!DB[srcMonth]){el.innerHTML='<div style="padding:12px;color:#64748b;">ไม่พบข้อมูล</div>';return;}
-  const days=DB[srcMonth].days||{};
-  const sorted=Object.keys(days).map(Number).sort((a,b)=>a-b);
-  if(!sorted.length){el.innerHTML='<div style="padding:12px;color:#64748b;">ไม่มีรายการในเดือนนี้</div>';return;}
-  const [yr,mn]=srcMonth.split('-');
-  el.innerHTML=sorted.map(d=>{
-    const day=days[d];
-    const expN=(day.items||[]).reduce((s,i)=>s+(i.nai||0),0);
-    const expJ=(day.items||[]).reduce((s,i)=>s+(i.jen||0),0);
-    return `<div class="copy-day-row">
-      <input type="checkbox" checked class="copy-day-chk" value="${d}">
-      <div style="flex:1;">
-        <strong>${d}/${mn}/${yr}</strong>
-        <span style="font-size:11px;color:#64748b;margin-left:6px;">${(day.items||[]).length} รายการ · นาย ${fmt(expN)} · เจน ${fmt(expJ)}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-function selectAllCopyDays(checked){
-  document.querySelectorAll('.copy-day-chk').forEach(c=>c.checked=checked);
-}
-function executeCopyDays(){
-  const srcMonth=document.getElementById('copyFromMonth').value;
-  const toDay=parseInt(document.getElementById('copyToDay').value);
-  if(!toDay||toDay<1||toDay>31){alert('กรุณาใส่วันที่ 1-31');return;}
-  if(!DB[curMonth]){alert('ไม่พบเดือนปัจจุบัน');return;}
-  if(!DB[curMonth].days)DB[curMonth].days={};
-  if(!DB[curMonth].days[toDay])DB[curMonth].days[toDay]={incomeNai:0,incomeJen:0,deducted:0,items:[]};
-  const day=DB[curMonth].days[toDay];
-  day.items=day.items||[];
-  let maxId=(day.items||[]).reduce((m,i)=>Math.max(m,i.id),0);
-  let added=0;
-  const checked=[...document.querySelectorAll('.copy-day-chk:checked')].map(c=>parseInt(c.value));
-  checked.forEach(d=>{
-    if(!DB[srcMonth]||!DB[srcMonth].days[d])return;
-    (DB[srcMonth].days[d].items||[]).forEach(item=>{
-      day.items.push({id:++maxId,name:item.name,nai:item.nai||0,jen:item.jen||0,cat:item.cat});
-      added++;
-    });
-  });
-  if(!added){alert('ไม่มีรายการที่เลือก');return;}
-  save();hideModal('copyMonthModal');renderAll();setTimeout(()=>expandDay(toDay),80);
-  showUndoToast('copy '+added+' รายการเข้าวันที่ '+toDay+' แล้ว',null);
-}
 
 </script>
 
@@ -2428,35 +2271,6 @@ function executeCopyDays(){
   </div>
 </div>
 
-<!-- COPY LAST MONTH MODAL -->
-<div class="overlay" id="copyMonthModal">
-  <div class="modal">
-    <h3>📅 Copy รายการจากเดือนที่แล้ว</h3>
-    <p style="font-size:12px;color:#64748b;margin-bottom:12px;">เลือกวันที่ต้องการ copy รายการมาใส่เดือนปัจจุบัน</p>
-    <div style="margin-bottom:12px;">
-      <label class="lbl">เดือนต้นทาง</label>
-      <select class="sel" id="copyFromMonth" onchange="renderCopyDaysList()"></select>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label class="lbl">โหลดเข้าวันที่ (ในเดือนปัจจุบัน)</label>
-      <input class="inp" type="number" id="copyToDay" min="1" max="31" placeholder="เช่น 1">
-    </div>
-    <div style="margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
-      <label class="lbl" style="margin:0;">เลือกวัน</label>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-secondary btn-sm" onclick="selectAllCopyDays(true)">เลือกทั้งหมด</button>
-        <button class="btn btn-secondary btn-sm" onclick="selectAllCopyDays(false)">ยกเลือก</button>
-      </div>
-    </div>
-    <div id="copyDaysList" style="max-height:220px;overflow-y:auto;border:1px solid #334155;border-radius:8px;padding:4px 10px;"></div>
-    <div class="modal-acts">
-      <button class="btn btn-secondary" onclick="hideModal('copyMonthModal')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="executeCopyDays()">📥 Copy รายการที่เลือก</button>
-    </div>
-  </div>
-</div>
-
-
 <!-- SELECTION BAR -->
 <div id="selBar">
   <div class="sel-info">เลือก <strong id="selCount">0</strong> ยอด</div>
@@ -2486,34 +2300,5 @@ function executeCopyDays(){
 </div>
 
 <!-- MULTI-ADD ITEMS MODAL -->
-
-
-<!-- COPY LAST MONTH MODAL -->
-<div class="overlay" id="copyMonthModal">
-  <div class="modal">
-    <h3>📅 Copy รายการจากเดือนที่แล้ว</h3>
-    <p style="font-size:12px;color:#64748b;margin-bottom:12px;">เลือกวันที่ต้องการ copy รายการมาใส่เดือนปัจจุบัน</p>
-    <div style="margin-bottom:12px;">
-      <label class="lbl">เดือนต้นทาง</label>
-      <select class="sel" id="copyFromMonth" onchange="renderCopyDaysList()"></select>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label class="lbl">โหลดเข้าวันที่ (ในเดือนปัจจุบัน)</label>
-      <input class="inp" type="number" id="copyToDay" min="1" max="31" placeholder="เช่น 1">
-    </div>
-    <div style="margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
-      <label class="lbl" style="margin:0;">เลือกวัน</label>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-secondary btn-sm" onclick="selectAllCopyDays(true)">เลือกทั้งหมด</button>
-        <button class="btn btn-secondary btn-sm" onclick="selectAllCopyDays(false)">ยกเลือก</button>
-      </div>
-    </div>
-    <div id="copyDaysList" style="max-height:220px;overflow-y:auto;border:1px solid #334155;border-radius:8px;padding:4px 10px;"></div>
-    <div class="modal-acts">
-      <button class="btn btn-secondary" onclick="hideModal('copyMonthModal')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="executeCopyDays()">📥 Copy รายการที่เลือก</button>
-    </div>
-  </div>
-</div>
 
 </body></html>
