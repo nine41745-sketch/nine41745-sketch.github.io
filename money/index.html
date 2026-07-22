@@ -1110,6 +1110,10 @@ let DB={},curMonth='',viewPerson='nai',curTab='dashboard';
 let charts={},editItemCtx=null,editDayCtx=null;
 
 function save(){
+  // บันทึก timestamp (ms) เพื่อใช้เปรียบเทียบกับ Firebase
+  const _nowMs=Date.now();
+  localStorage.setItem('bh_save_ts',String(_nowMs));
+  DB._savedAt=_nowMs;
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp with full date
   const _n=new Date();
@@ -1122,7 +1126,7 @@ function save(){
   if(window._fbRef){
     window._fbRef.set(DB)
       .then(()=>{updateSyncBadge('ok');})
-      .catch(()=>updateSyncBadge('err'));
+      .catch(()=>{updateSyncBadge('err');console.error('Firebase save failed — data kept in localStorage');});
   }
   // Push lastUpdated to Firebase settings so all devices see same timestamp
   if(window._fbSettingsRef){
@@ -1840,11 +1844,19 @@ function initFirebaseDB(config){
         const incoming=JSON.stringify(data);
         const current=JSON.stringify(DB);
         if(incoming!==current){
-          // Safety: ถ้าข้อมูลจาก Firebase มีเดือนน้อยกว่า local → อย่า overwrite → push local ขึ้น Firebase แทน
           const fbMonths=Object.keys(data).length;
           const localMonths=Object.keys(DB).length;
-          if(localMonths>0&&fbMonths<localMonths){
-            console.warn('Firebase has fewer months than local — pushing local data to Firebase instead');
+          // นับ items รวมทั้งหมด เพื่อเปรียบเทียบว่าฝั่งไหน "ใหม่กว่า"
+          const countItems=d=>Object.values(d).reduce((t,m)=>t+Object.values(m.days||{}).reduce((t2,day)=>t2+(day.items||[]).length,0),0);
+          const localItemCount=countItems(DB);
+          const fbItemCount=countItems(data);
+          // local timestamp (ms) vs Firebase timestamp
+          const localTs=parseInt(localStorage.getItem('bh_save_ts')||'0');
+          const fbTs=parseInt(data._savedAt||'0');
+          const localIsNewer=(localTs>0&&localTs>fbTs)||localItemCount>fbItemCount||(localMonths>0&&fbMonths<localMonths);
+          if(localIsNewer){
+            // local ใหม่กว่า → push local ขึ้น Firebase แทน
+            console.log('Local is newer — pushing local to Firebase');
             window._fbRef.set(DB);
           }else{
             if(window._skipFbRender){window._skipFbRender=false;}
@@ -1853,6 +1865,7 @@ function initFirebaseDB(config){
               if(Object.keys(DB).length>0)localStorage.setItem('bh_data_backup',JSON.stringify(DB));
               DB=data;
               localStorage.setItem('bh_data2',JSON.stringify(DB));
+              localStorage.setItem('bh_save_ts',String(fbTs||Date.now()));
               buildMonthSel();renderAll();checkMobile();
             }
           }
