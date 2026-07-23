@@ -14,7 +14,8 @@ function getScratchTopics(d){
   return[];
 }
 function saveScratchTopics(d){
-  const day=DB[curMonth]&&DB[curMonth].days[d];if(!day)return;
+  const mo=curMonth; // Fix: capture ค่า curMonth ไว้ใน closure ป้องกัน race condition กรณีสลับเดือนก่อน setTimeout
+  const day=DB[mo]&&DB[mo].days[d];if(!day)return;
   const topics=[];
   document.querySelectorAll('#scratch-topics-'+d+' .scratch-topic').forEach(el=>{
     topics.push({title:el.querySelector('.scratch-topic-title').value||'',nai:el.querySelector('.scratch-ta-nai').value||'',jen:el.querySelector('.scratch-ta-jen').value||''});
@@ -24,7 +25,7 @@ function saveScratchTopics(d){
   save();
   updateScratchDayTotal(d);
   if(window._scratchFbTimer)clearTimeout(window._scratchFbTimer);
-  window._scratchFbTimer=setTimeout(()=>{window._skipFbRender=true;if(window._fbRef)window._fbRef.child(curMonth+'/days/'+d+'/scratchTopics').set(topics);},1500);
+  window._scratchFbTimer=setTimeout(()=>{window._skipFbRender=true;if(window._fbRef)window._fbRef.child(mo+'/days/'+d+'/scratchTopics').set(topics);},1500);
 }
 function calcScratchSum(text){
   let s=0;
@@ -1110,9 +1111,12 @@ let DB={},curMonth='',viewPerson='nai',curTab='dashboard';
 let charts={},editItemCtx=null,editDayCtx=null;
 
 function save(){
-  // บันทึก timestamp (ms) เพื่อใช้เปรียบเทียบกับ Firebase (เก็บแค่ใน localStorage ไม่ใส่ใน DB)
   const _nowMs=Date.now();
   localStorage.setItem('bh_save_ts',String(_nowMs));
+  // Fix 1+2: เก็บ updatedAt ต่อเดือน (ไม่ใส่ที่ DB root) + ส่ง Firebase แบบ granular path
+  if(curMonth&&DB[curMonth]){
+    DB[curMonth].updatedAt=_nowMs;
+  }
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp with full date
   const _n=new Date();
@@ -1122,8 +1126,9 @@ function save(){
   const _lu=document.getElementById('lastUpdated');
   if(_lu)_lu.textContent='อัพเดท '+_ts;
   localStorage.setItem('bh_last_updated','อัพเดท '+_ts);
-  if(window._fbRef){
-    window._fbRef.set(DB)
+  if(window._fbRef&&curMonth&&DB[curMonth]){
+    // Granular: อัปเดตเฉพาะเดือนที่แก้ไข ไม่เขียนทับทั้ง DB
+    window._fbRef.child(curMonth).set(DB[curMonth])
       .then(()=>{updateSyncBadge('ok');})
       .catch(()=>{updateSyncBadge('err');console.error('Firebase save failed — data kept in localStorage');});
   }
@@ -1131,6 +1136,13 @@ function save(){
   if(window._fbSettingsRef){
     window._fbSettingsRef.child('lastUpdated').set('อัพเดท '+_ts).catch(()=>{});
   }
+}
+// Full push สำหรับ bulk operations (import, restore)
+function _fbPushAll(){
+  if(!window._fbRef)return;
+  window._fbRef.set(DB)
+    .then(()=>updateSyncBadge('ok'))
+    .catch(()=>updateSyncBadge('err'));
 }
 function load(){
   const s=localStorage.getItem('bh_data2')||localStorage.getItem('bh_data');
@@ -1633,12 +1645,27 @@ function deleteCurrentMonth(){
   const monthName=DB[curMonth].name||curMonth;
   const dayCount=Object.keys(DB[curMonth].days||{}).length;
   if(!confirm(`ลบเดือน "${monthName}" ?\n(มีข้อมูล ${dayCount} วัน — ข้อมูลจะหายถาวร)`))return;
+  const deletedMonth=curMonth;
   delete DB[curMonth];
-  save();
+  // Fix 2: ใช้ .remove() เฉพาะ path ที่ลบ แทน set(DB) ทั้งก้อน
+  localStorage.setItem('bh_data2',JSON.stringify(DB));
+  if(window._fbRef){
+    window._fbRef.child(deletedMonth).remove()
+      .then(()=>updateSyncBadge('ok'))
+      .catch(()=>updateSyncBadge('err'));
+  }
   const months=Object.keys(DB).sort();
   curMonth=months[months.length-1]||'';
   buildMonthSel();
-  renderAll();
+  if(!curMonth){
+    // Fix 5: Empty state เมื่อลบเดือนสุดท้าย
+    const tbody=document.getElementById('tbody');
+    if(tbody)tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:48px;color:#334155;font-size:15px;">📭 ไม่มีข้อมูล<br><span style="font-size:13px;margin-top:8px;display:block;">กดปุ่ม 📅 เดือนใหม่ เพื่อเริ่มต้น</span></td></tr>';
+    const ml=document.getElementById('monthLabel');if(ml)ml.textContent='';
+    Object.keys(charts).forEach(k=>{try{charts[k].destroy();}catch(e){}});charts={};
+  } else {
+    renderAll();
+  }
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.on').forEach(el=>el.classList.remove('on'));});
 
@@ -1701,6 +1728,42 @@ function updateBudget(cat,person,val){
   b[cat][person]=val?parseFloat(val):null;
   if(!b[cat].nai&&!b[cat].jen)delete b[cat];
   saveBudget(b);
+  // Fix 6: อัปเดตเฉพาะ bars ไม่ re-render ทั้งหน้า → cursor ไม่หลุด
+  _refreshBudgetBarsOnly();
+}
+// Fix 6: Extract buildBudgetBars ออกเป็น module-level function
+function buildBudgetBars(elId,catTot,person){
+  const budget=getBudget();
+  const el2=document.getElementById(elId);if(!el2)return;
+  el2.innerHTML='';
+  CATS.forEach((c,i)=>{
+    const used=catTot[c]||0;
+    const lim=budget[c]?Number(budget[c][person])||0:0;
+    if(!used&&!lim)return;
+    const pct=lim?Math.min(Math.round(used/lim*100),100):0;
+    const over=lim&&used>lim;
+    const col=over?'#f87171':CAT_COLORS[i%CAT_COLORS.length];
+    el2.innerHTML+=`<div class="cat-bar-row">
+      <div class="cat-bar-label">
+        <div class="cat-bar-name">${CAT_EMOJI[c]||''} ${c}${over?' <span style="color:#f87171;font-size:10px;">⚠️ เกินงบ</span>':''}</div>
+        <div class="cat-bar-val ${over?'budget-over':''}" style="color:${col}">${lim?'<span style="color:#64748b;font-size:10px;">งบ</span> '+fmt(lim)+' <span style="color:#64748b;font-size:10px;">/ จริง</span> '+fmt(used)+(over?'':' <span style="color:#34d399;font-size:10px;">('+pct+'%)</span>'):fmt(used)}</div>
+      </div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${lim?pct:100}%;background:${lim?col:'#1e3a5f'}"></div></div>
+    </div>`;
+  });
+  if(!el2.innerHTML)el2.innerHTML='<div style="color:#334155;font-size:13px;padding:8px 0;">ยังไม่มีการใช้จ่ายเดือนนี้</div>';
+}
+function _refreshBudgetBarsOnly(){
+  // อัปเดตเฉพาะ bar charts ในหน้างบ ไม่แตะ input elements
+  const m=DB[curMonth];
+  const catN={},catJ={};
+  CATS.forEach(c=>{catN[c]=0;catJ[c]=0;});
+  if(m)Object.values(m.days||{}).forEach(d=>(d.items||[]).forEach(i=>{
+    catN[i.cat]=(catN[i.cat]||0)+(i.nai||0);
+    catJ[i.cat]=(catJ[i.cat]||0)+(i.jen||0);
+  }));
+  buildBudgetBars('budget-nai-bars',catN,'nai');
+  buildBudgetBars('budget-jen-bars',catJ,'jen');
 }
 function renderBudget(){
   const el=document.getElementById('tab-budget');if(!el)return;
@@ -1712,32 +1775,13 @@ function renderBudget(){
     catN[i.cat]=(catN[i.cat]||0)+(i.nai||0);
     catJ[i.cat]=(catJ[i.cat]||0)+(i.jen||0);
   }));
-  function buildBudgetBars(elId,catTot,person){
-    const el2=document.getElementById(elId);if(!el2)return;
-    el2.innerHTML='';
-    CATS.forEach((c,i)=>{
-      const used=catTot[c]||0;
-      const lim=budget[c]?Number(budget[c][person])||0:0;
-      if(!used&&!lim)return;
-      const pct=lim?Math.min(Math.round(used/lim*100),100):0;
-      const over=lim&&used>lim;
-      const col=over?'#f87171':CAT_COLORS[i%CAT_COLORS.length];
-      el2.innerHTML+=`<div class="cat-bar-row">
-        <div class="cat-bar-label">
-          <div class="cat-bar-name">${CAT_EMOJI[c]||''} ${c}${over?' <span style="color:#f87171;font-size:10px;">⚠️ เกินงบ</span>':''}</div>
-          <div class="cat-bar-val ${over?'budget-over':''}" style="color:${col}">${lim?'<span style="color:#64748b;font-size:10px;">งบ</span> '+fmt(lim)+' <span style="color:#64748b;font-size:10px;">/ จริง</span> '+fmt(used)+(over?'':' <span style="color:#34d399;font-size:10px;">('+pct+'%)</span>'):fmt(used)}</div>
-        </div>
-        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${lim?pct:100}%;background:${lim?col:'#1e3a5f'}"></div></div>
-      </div>`;
-    });
-    if(!el2.innerHTML)el2.innerHTML='<div style="color:#334155;font-size:13px;padding:8px 0;">ยังไม่มีการใช้จ่ายเดือนนี้</div>';
-  }
   let rows=CATS.map(c=>{
     const b=budget[c]||{};
+    // Fix 6: เอา renderBudget() ออกจาก onchange → ใช้ updateBudget() อย่างเดียว (bars update แยก)
     return `<tr style="border-bottom:1px solid #1a2540;">
       <td style="padding:8px 12px;font-size:13px;color:#cbd5e1;">${CAT_EMOJI[c]||''} ${c}</td>
-      <td style="padding:8px 6px;text-align:center;"><input class="inp" type="number" min="0" style="width:110px;text-align:center;padding:6px 8px;" value="${b.nai||''}" placeholder="ไม่จำกัด" onchange="updateBudget('${c}','nai',this.value);renderBudget()"></td>
-      <td style="padding:8px 6px;text-align:center;"><input class="inp" type="number" min="0" style="width:110px;text-align:center;padding:6px 8px;" value="${b.jen||''}" placeholder="ไม่จำกัด" onchange="updateBudget('${c}','jen',this.value);renderBudget()"></td>
+      <td style="padding:8px 6px;text-align:center;"><input class="inp" type="number" min="0" style="width:110px;text-align:center;padding:6px 8px;" value="${b.nai||''}" placeholder="ไม่จำกัด" onchange="updateBudget('${c}','nai',this.value)"></td>
+      <td style="padding:8px 6px;text-align:center;"><input class="inp" type="number" min="0" style="width:110px;text-align:center;padding:6px 8px;" value="${b.jen||''}" placeholder="ไม่จำกัด" onchange="updateBudget('${c}','jen',this.value)"></td>
     </tr>`;
   }).join('');
   el.innerHTML=`
@@ -1842,32 +1886,49 @@ function initFirebaseDB(config){
             Object.keys(data[mo].days).forEach(d=>{if(data[mo].days[d]===null)delete data[mo].days[d];});
           }
         });
-        const incoming=JSON.stringify(data);
-        const current=JSON.stringify(DB);
-        if(incoming!==current){
-          const fbMonths=Object.keys(data).length;
-          const localMonths=Object.keys(DB).length;
-          // นับ items รวมทั้งหมด เพื่อเปรียบเทียบว่าฝั่งไหน "ใหม่กว่า"
-          const countItems=d=>Object.values(d).reduce((t,m)=>t+(typeof m==='object'&&m?Object.values(m.days||{}).reduce((t2,day)=>t2+(day.items||[]).length,0):0),0);
-          const localItemCount=countItems(DB);
-          const fbItemCount=countItems(data);
-          // เปรียบเทียบด้วย item count และ month count
-          const localIsNewer=localItemCount>fbItemCount||(localMonths>0&&fbMonths<localMonths);
-          if(localIsNewer){
-            // local มีข้อมูลมากกว่า → push local ขึ้น Firebase แทน
-            console.log('Local has more data — pushing local to Firebase');
-            window._fbRef.set(DB);
-          }else{
-            if(window._skipFbRender){window._skipFbRender=false;}
-            else{
-              // Backup ก่อน overwrite ทุกครั้ง
-              if(Object.keys(DB).length>0)localStorage.setItem('bh_data_backup',JSON.stringify(DB));
-              DB=data;
-              localStorage.setItem('bh_data2',JSON.stringify(DB));
-              localStorage.setItem('bh_save_ts',String(fbTs||Date.now()));
-              buildMonthSel();renderAll();checkMobile();
+        // Fix 1: เปรียบเทียบ updatedAt ต่อเดือน แทนการนับ item count
+        // (ป้องกันกรณีลบรายการแล้วข้อมูลเด้งกลับ)
+        let _fbChanged=false;
+        const _monthsToPush=[];
+
+        // เช็คทุกเดือนที่ Firebase มี
+        Object.keys(data).forEach(mo=>{
+          if(!DB[mo]){
+            // Firebase มีเดือนที่ local ไม่มี → รับมา
+            DB[mo]=data[mo];_fbChanged=true;
+          } else {
+            const fbTs=data[mo].updatedAt||0;
+            const localTs=DB[mo].updatedAt||0;
+            if(fbTs>localTs){
+              // Firebase ใหม่กว่า → อัปเดต local (ยกเว้นถ้า _skipFbRender)
+              if(!window._skipFbRender){
+                DB[mo]=data[mo];_fbChanged=true;
+              }
+            } else if(localTs>fbTs){
+              // Local ใหม่กว่า → push กลับขึ้น Firebase
+              _monthsToPush.push(mo);
             }
+            // เท่ากัน → ไม่ต้องทำอะไร
           }
+        });
+
+        // เดือนที่ local มีแต่ Firebase ไม่มี → push ขึ้น
+        Object.keys(DB).forEach(mo=>{if(!data[mo])_monthsToPush.push(mo);});
+
+        if(window._skipFbRender){
+          window._skipFbRender=false;
+        } else if(_fbChanged){
+          if(Object.keys(DB).length>0)localStorage.setItem('bh_data_backup',JSON.stringify(DB));
+          localStorage.setItem('bh_data2',JSON.stringify(DB));
+          localStorage.setItem('bh_save_ts',String(Date.now()));
+          buildMonthSel();renderAll();checkMobile();
+        }
+
+        // Push เดือนที่ local ใหม่กว่ากลับขึ้น Firebase
+        if(_monthsToPush.length>0&&window._fbRef){
+          _monthsToPush.forEach(mo=>{
+            if(DB[mo])window._fbRef.child(mo).set(DB[mo]).catch(()=>{});
+          });
         }
       } else if(!data){
         window._fbRef.set(DB);
@@ -1935,7 +1996,9 @@ function restoreFromBackup(){
     const months=Object.keys(restored).length;
     if(!confirm(`กู้คืนข้อมูลสำรองล่าสุด?\n(มี ${months} เดือน)\n⚠️ ข้อมูลปัจจุบันจะถูกแทนที่`))return;
     DB=restored;
-    save();buildMonthSel();renderAll();
+    localStorage.setItem('bh_data2',JSON.stringify(DB));
+    _fbPushAll(); // Restore ทั้งหมด → full push
+    buildMonthSel();renderAll();
     hideModal('fbModal');
     alert('✅ กู้คืนข้อมูลสำเร็จ!');
   }catch(e){alert('❌ ไม่สามารถกู้คืนได้: '+e.message);}
@@ -1971,9 +2034,9 @@ function importData(e){
       }
       if(!confirm(`นำเข้าข้อมูล ${Object.keys(imported).length} เดือน?\n⚠️ ข้อมูลปัจจุบันจะถูกแทนที่ทั้งหมด`))return;
       DB=imported;
-      save();
-      buildMonthSel();
-      renderAll();
+      localStorage.setItem('bh_data2',JSON.stringify(DB));
+      _fbPushAll(); // Import ทั้งหมด → full push
+      buildMonthSel();renderAll();
       alert('✅ นำเข้าข้อมูลสำเร็จ!');
     }catch(err){
       alert('❌ ไฟล์ JSON ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
@@ -2300,17 +2363,6 @@ function saveItemAsTemplate(){
   <button class="btn btn-primary btn-sm" id="undoBtn" onclick="doUndo()">↩ เลิกทำ</button>
 </div>
 
-<!-- AUTO-LOGOUT WARNING TOAST -->
-
-<div id="autoLogoutWarn">
-  <div class="aw-title">⏰ จะออกจากระบบใน <span id="awCount">60</span> วินาที</div>
-  <div class="aw-sub">ไม่ได้ใช้งานนาน 14 นาที</div>
-  <div class="aw-btns">
-    <button class="btn btn-primary btn-sm" onclick="resetIdleTimer()">ยังใช้งานอยู่</button>
-    <button class="btn btn-secondary btn-sm" onclick="logout()">ออกเลย</button>
-  </div>
-</div>
-
-<!-- MULTI-ADD ITEMS MODAL -->
+<!-- Fix 4: ลบ DOM id="autoLogoutWarn" ซ้ำออก (ตัวจริงอยู่ด้านบน) -->
 
 </body></html>
