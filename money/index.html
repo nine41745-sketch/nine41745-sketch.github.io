@@ -1110,10 +1110,9 @@ let DB={},curMonth='',viewPerson='nai',curTab='dashboard';
 let charts={},editItemCtx=null,editDayCtx=null;
 
 function save(){
-  // บันทึก timestamp (ms) เพื่อใช้เปรียบเทียบกับ Firebase
+  // บันทึก timestamp (ms) เพื่อใช้เปรียบเทียบกับ Firebase (เก็บแค่ใน localStorage ไม่ใส่ใน DB)
   const _nowMs=Date.now();
   localStorage.setItem('bh_save_ts',String(_nowMs));
-  DB._savedAt=_nowMs;
   localStorage.setItem('bh_data2',JSON.stringify(DB));
   // Update last-updated timestamp with full date
   const _n=new Date();
@@ -1835,6 +1834,8 @@ function initFirebaseDB(config){
     window._fbRef.on('value',(snap)=>{
       const data=snap.val();
       if(data&&typeof data==='object'&&!Array.isArray(data)){
+        // กรอง key ที่ไม่ใช่เดือน (เช่น _savedAt ที่อาจค้างใน Firebase) ออก
+        Object.keys(data).forEach(k=>{ if(typeof data[k]!=='object'||data[k]===null)delete data[k]; });
         Object.keys(data).forEach(mo=>{
           if(data[mo]){
             if(!data[mo].days)data[mo].days={};
@@ -1847,16 +1848,14 @@ function initFirebaseDB(config){
           const fbMonths=Object.keys(data).length;
           const localMonths=Object.keys(DB).length;
           // นับ items รวมทั้งหมด เพื่อเปรียบเทียบว่าฝั่งไหน "ใหม่กว่า"
-          const countItems=d=>Object.values(d).reduce((t,m)=>t+Object.values(m.days||{}).reduce((t2,day)=>t2+(day.items||[]).length,0),0);
+          const countItems=d=>Object.values(d).reduce((t,m)=>t+(typeof m==='object'&&m?Object.values(m.days||{}).reduce((t2,day)=>t2+(day.items||[]).length,0):0),0);
           const localItemCount=countItems(DB);
           const fbItemCount=countItems(data);
-          // local timestamp (ms) vs Firebase timestamp
-          const localTs=parseInt(localStorage.getItem('bh_save_ts')||'0');
-          const fbTs=parseInt(data._savedAt||'0');
-          const localIsNewer=(localTs>0&&localTs>fbTs)||localItemCount>fbItemCount||(localMonths>0&&fbMonths<localMonths);
+          // เปรียบเทียบด้วย item count และ month count
+          const localIsNewer=localItemCount>fbItemCount||(localMonths>0&&fbMonths<localMonths);
           if(localIsNewer){
-            // local ใหม่กว่า → push local ขึ้น Firebase แทน
-            console.log('Local is newer — pushing local to Firebase');
+            // local มีข้อมูลมากกว่า → push local ขึ้น Firebase แทน
+            console.log('Local has more data — pushing local to Firebase');
             window._fbRef.set(DB);
           }else{
             if(window._skipFbRender){window._skipFbRender=false;}
