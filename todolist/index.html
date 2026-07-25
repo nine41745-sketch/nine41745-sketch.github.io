@@ -393,7 +393,7 @@
       </div>
       <div class="fb-actions" style="justify-content:center;">
         <button class="fb-cancel-btn" onclick="closeFbModal()">ปิด</button>
-        <button class="fb-save-btn" style="background:#d97706;flex:unset;padding:10px 16px;" onclick="closeFbModal();exportData()">🔄 กู้คืน backup</button>
+        <button class="fb-save-btn" style="background:#d97706;flex:unset;padding:10px 16px;" onclick="closeFbModal();document.getElementById('importFile').click()">📥 นำเข้า backup</button>
         <button class="fb-disconnect-btn" onclick="disconnectFirebase()">🔌 ยกเลิกการเชื่อมต่อ</button>
       </div>
     </div>
@@ -508,6 +508,7 @@ if(!tasks){
 // ── FIREBASE ───────────────────────────────────────
 let _fbApp=null,_fbDb=null,_fbRef=null;
 let _pageLoading=true;
+let _lastSaveTime=0;
 
 tasks.forEach(t=>{
   if(t.pri==='today') t.pri='high';
@@ -593,6 +594,7 @@ function initFirebaseDB(config){
     updateSyncBadge('connecting');
     _fbRef.on('value',(snap)=>{
       const data=snap.val();
+      if(Date.now()-_lastSaveTime<2000) return; // ป้องกัน race condition
       if(data&&Array.isArray(data)){
         const incoming=JSON.stringify(data);
         const current=JSON.stringify(tasks);
@@ -653,7 +655,13 @@ function loadTheme(){
 
 function save(){
   localStorage.setItem('todo_tasks',JSON.stringify(tasks));
-  if(_fbRef){_fbRef.set(tasks).catch(e=>console.error('Firebase save error:',e));}
+  if(_fbRef){
+    _lastSaveTime=Date.now();
+    _fbRef.set(tasks).catch(e=>{
+      console.error('Firebase save error:',e);
+      showToast('⚠️ บันทึก Local แล้ว แต่ Sync ไม่สำเร็จ');
+    });
+  }
   if(!_pageLoading) updateLastSaved();
 }
 
@@ -855,9 +863,11 @@ function showToast(msg){
   toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
 }
 
-function isOverdue(t){ if(!t.due||t.done) return false; return new Date(t.due)<new Date(new Date().toDateString()); }
-function isSoon(t){ if(!t.due||t.done) return false; const diff=(new Date(t.due)-new Date(new Date().toDateString()))/(1000*60*60*24); return diff>=0&&diff<=2; }
-function fmtDue(due){ return new Date(due).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}); }
+function parseLocalDate(str){ if(!str) return null; const [y,m,d]=str.split('-').map(Number); return new Date(y,m-1,d); }
+function localMidnight(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+function isOverdue(t){ if(!t.due||t.done) return false; return parseLocalDate(t.due)<localMidnight(); }
+function isSoon(t){ if(!t.due||t.done) return false; const diff=(parseLocalDate(t.due)-localMidnight())/(1000*60*60*24); return diff>=0&&diff<=2; }
+function fmtDue(due){ return parseLocalDate(due).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}); }
 
 function render(){
   const searchQ=document.getElementById('searchInp').value.trim().toLowerCase();
