@@ -1110,6 +1110,23 @@ const SEED={"2569-06":{name:"มิถุนายน 2569",days:{
 let DB={},curMonth='',viewPerson='nai',curTab='dashboard';
 let charts={},editItemCtx=null,editDayCtx=null;
 
+// จัด format เวลาไทยแบบ fix timezone Asia/Bangkok เพื่อให้ทุกเครื่องเห็นข้อความเดียวกัน
+// ไม่ว่าจะตั้ง timezone/นาฬิกาเครื่องเป็นอะไรก็ตาม (ใช้ ms ที่มาจาก Firebase Server Timestamp)
+function formatThaiTS(ms){
+  const _n=new Date(ms);
+  const _thDays=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const _thMonths=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  // ใช้ Intl เพื่อดึงองค์ประกอบวันที่/เวลาตาม timezone Asia/Bangkok เสมอ (ไม่ขึ้นกับเครื่อง)
+  const _parts={};
+  new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+    .formatToParts(_n).forEach(p=>{_parts[p.type]=p.value;});
+  const _wdMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const _wd=_thDays[_wdMap[_parts.weekday]];
+  const _mo=_thMonths[parseInt(_parts.month,10)-1];
+  const _yr=parseInt(_parts.year,10)+543;
+  let _hh=_parts.hour==='24'?'00':_parts.hour;
+  return _wd+'. '+parseInt(_parts.day,10)+' '+_mo+' '+_yr+' · '+_hh+':'+_parts.minute+' น.';
+}
 function save(){
   const _nowMs=Date.now();
   localStorage.setItem('bh_save_ts',String(_nowMs));
@@ -1118,23 +1135,20 @@ function save(){
     DB[curMonth].updatedAt=_nowMs;
   }
   localStorage.setItem('bh_data2',JSON.stringify(DB));
-  // Update last-updated timestamp with full date
-  const _n=new Date();
-  const _thDays=['อา','จ','อ','พ','พฤ','ศ','ส'];
-  const _thMonths=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const _ts=_thDays[_n.getDay()]+'. '+_n.getDate()+' '+_thMonths[_n.getMonth()]+' '+(_n.getFullYear()+543)+' · '+_n.getHours().toString().padStart(2,'0')+':'+_n.getMinutes().toString().padStart(2,'0')+' น.';
+  // แสดงผลชั่วคราวจากเวลาเครื่อง (optimistic) — จะถูกแทนที่ด้วยเวลาเซิร์ฟเวอร์จริงทันทีที่ sync กลับมา
   const _lu=document.getElementById('lastUpdated');
-  if(_lu)_lu.textContent='อัพเดท '+_ts;
-  localStorage.setItem('bh_last_updated','อัพเดท '+_ts);
+  const _optimisticTs='อัพเดท '+formatThaiTS(_nowMs);
+  if(_lu)_lu.textContent=_optimisticTs;
+  localStorage.setItem('bh_last_updated',_optimisticTs);
   if(window._fbRef&&curMonth&&DB[curMonth]){
     // Granular: อัปเดตเฉพาะเดือนที่แก้ไข ไม่เขียนทับทั้ง DB
     window._fbRef.child(curMonth).set(DB[curMonth])
       .then(()=>{updateSyncBadge('ok');})
       .catch(()=>{updateSyncBadge('err');console.error('Firebase save failed — data kept in localStorage');});
   }
-  // Push lastUpdated to Firebase settings so all devices see same timestamp
+  // Push server timestamp (ไม่ใช่นาฬิกาเครื่อง) เพื่อให้ทุกเครื่องเห็นเวลาตรงกันเป๊ะๆ
   if(window._fbSettingsRef){
-    window._fbSettingsRef.child('lastUpdated').set('อัพเดท '+_ts).catch(()=>{});
+    window._fbSettingsRef.child('lastUpdatedMs').set(firebase.database.ServerValue.TIMESTAMP).catch(()=>{});
   }
 }
 // Full push สำหรับ bulk operations (import, restore)
@@ -1945,8 +1959,14 @@ function initFirebaseDB(config){
     window._fbSettingsRef.on('value',(snap)=>{
       const s=snap.val();
       if(!s)return;
-      // Read lastUpdated from Firebase (same on all devices)
-      if(s.lastUpdated){
+      // Read lastUpdated จาก Firebase Server Timestamp — ทุกเครื่องได้เวลาเดียวกันเป๊ะ ไม่ขึ้นกับนาฬิกาเครื่อง
+      if(s.lastUpdatedMs){
+        const _txt='อัพเดท '+formatThaiTS(s.lastUpdatedMs);
+        const _lu=document.getElementById('lastUpdated');
+        if(_lu)_lu.textContent=_txt;
+        localStorage.setItem('bh_last_updated',_txt);
+      } else if(s.lastUpdated){
+        // รองรับข้อมูลเก่าที่ยังเป็น string (ก่อนอัปเดตเป็น server timestamp)
         const _lu=document.getElementById('lastUpdated');
         if(_lu)_lu.textContent=s.lastUpdated;
         localStorage.setItem('bh_last_updated',s.lastUpdated);
