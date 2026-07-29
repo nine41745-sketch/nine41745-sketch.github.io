@@ -2,8 +2,13 @@
 <!-- saved from url=(0042)https://dulcet-strudel-39fe79.netlify.app/ -->
 <html lang="th"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>ลัคกี้&amp;ยูฟ่า Dashboard</title>
+<!-- App Version: 2.0.1-mobile-fixed (cache-bust + sync-time + mobile UI) -->
+<script>console.log("App Version: 2.0.1-mobile-fixed");</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // ── SCRATCH PAD TOPICS ────────────────────────────────────────
@@ -319,16 +324,16 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
   .card-label{font-size:11px;}
   .card-sub{font-size:10px;}
   /* ปุ่มแตะง่ายขึ้น — สูงอย่างน้อย 40px ตามหลัก touch-target */
-  .btn{padding:9px 13px;font-size:13px;min-height:40px;border-radius:10px;-webkit-tap-highlight-color:transparent;}
+  .btn{padding:9px 13px;font-size:13px;min-height:44px;border-radius:10px;-webkit-tap-highlight-color:transparent;}
   .btn-hide-mobile{display:none!important;}
   .btn-sm{padding:7px 10px;font-size:12px;min-height:34px;}
   /* month select — แตะง่ายขึ้น */
-  .month-select{padding:9px 10px;font-size:13px;max-width:140px;min-height:40px;}
+  .month-select{padding:9px 10px;font-size:13px;max-width:140px;min-height:44px;}
   /* view toggle ใหญ่ขึ้นให้แตะง่าย */
-  .vt-btn{padding:9px 12px;font-size:12px;min-height:38px;}
+  .vt-btn{padding:9px 12px;font-size:12px;min-height:42px;}
   /* tabs — scrollable + แตะง่ายขึ้น */
   .tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;padding:3px;flex-wrap:nowrap;scroll-snap-type:x proximity;}
-  .tab-btn{padding:10px 14px;font-size:13px;white-space:nowrap;flex-shrink:0;min-height:40px;scroll-snap-align:start;}
+  .tab-btn{padding:10px 14px;font-size:13px;white-space:nowrap;flex-shrink:0;min-height:44px;scroll-snap-align:start;}
   /* table */
   .table-card{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   thead th,tbody td{padding:9px 8px;font-size:12px;}
@@ -352,7 +357,7 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
   .modal h3{font-size:16px;}
   .row2{grid-template-columns:1fr;}
   /* input มือถือ — font-size 16px ป้องกัน iOS ซูมเวลากดพิมพ์ */
-  .inp,.sel,.fb-textarea,.login-input{font-size:16px;padding:12px 13px;}
+  .inp,.sel,.fb-textarea,.login-input,.scratch-ta{font-size:16px!important;padding:12px 13px;}
   .modal-acts{position:sticky;bottom:0;background:#1e293b;padding-top:12px;margin-top:16px;}
   .modal-acts .btn{flex:1;min-height:46px;}
   /* multi-add */
@@ -667,6 +672,7 @@ body.light-mode .copy-day-row{border-bottom-color:#f1f5f9;color:#374151;}
         &nbsp;·&nbsp;
         <span class="last-upd" id="lastUpdated">-</span>
       </div>
+      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.0.1-mobile-fixed</div>
     </div>
     <div class="header-right">
       <select class="month-select" id="monthSel" onchange="switchMonth()"><option value="2569-06">มิถุนายน 2569</option><option value="2569-07">กรกฎาคม 2569</option><option value="2569-08">สิงหาคม 2569</option></select>
