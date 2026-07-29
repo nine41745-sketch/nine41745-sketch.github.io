@@ -683,8 +683,10 @@ body.light-mode .copy-day-row{border-bottom-color:#f1f5f9;color:#374151;}
         &nbsp;·&nbsp;
         <span class="last-upd" id="lastUpdated">-</span>
       </div>
-      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.0.5-debug</div>
+      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.0.6-debug2</div>
       <div id="debugSettings" style="font-size:9px;color:#f59e0b;margin-top:2px;word-break:break-all;">debug: -</div>
+      <div id="debugError" style="font-size:9px;color:#f87171;margin-top:2px;word-break:break-all;"></div>
+      <script>window.onerror=function(msg,src,line,col,err){const e=document.getElementById('debugError');if(e)e.textContent='JS ERROR: '+msg+' @line '+line;return false;};</script>
     </div>
     <div class="header-right">
       <select class="month-select" id="monthSel" onchange="switchMonth()"><option value="2569-06">มิถุนายน 2569</option><option value="2569-07">กรกฎาคม 2569</option><option value="2569-08">สิงหาคม 2569</option></select>
@@ -1924,6 +1926,7 @@ function initFirebaseDB(config){
     window._fbDb=firebase.database(window._fbApp);
     window._fbRef=window._fbDb.ref('lucky_uefa');
     window._fbSettingsRef=window._fbDb.ref('lucky_uefa_settings');
+    {const _dbg0=document.getElementById('debugSettings');if(_dbg0)_dbg0.textContent='debug: listener attaching...';}
     updateSyncBadge('connecting');
     window._fbRef.on('value',(snap)=>{
       const data=snap.val();
