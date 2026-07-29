@@ -368,6 +368,14 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
   .chart-container{height:200px;}
   /* header dropdown เมนู มือถือ */
   #mobileMenu .btn{min-height:42px;}
+  /* ── HARD LOCK: กัน element ในหน้าดันความกว้างเกินจอจน Safari auto-zoom-out ── */
+  html,body{width:100%!important;max-width:100vw!important;overflow-x:hidden!important;margin:0!important;padding:0!important;}
+  #mainApp,.content{width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding:8px!important;}
+  .chart-card,.chart-container{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
+  .chart-container canvas{width:100%!important;max-width:100%!important;}
+  .cards-row,.charts-row,.charts-cmp,.summary-grid,.cards-cmp{grid-template-columns:1fr!important;width:100%!important;}
+  .table-card{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{width:100%!important;}
 }
 @media(min-width:601px){
   /* desktop — ซ่อนปุ่ม ⋯ mobile menu */
