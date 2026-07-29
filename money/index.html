@@ -334,17 +334,20 @@ tbody td{padding:11px 14px;font-size:14px;vertical-align:middle;}
   /* tabs — scrollable + แตะง่ายขึ้น */
   .tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;padding:3px;flex-wrap:nowrap;scroll-snap-type:x proximity;}
   .tab-btn{padding:10px 14px;font-size:13px;white-space:nowrap;flex-shrink:0;min-height:44px;scroll-snap-align:start;}
-  /* table */
-  .table-card{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  thead th,tbody td{padding:9px 8px;font-size:12px;}
+  /* table — บีบเข้ารูป กันล้นขวา */
+  .table-card{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{width:100%!important;min-width:100%!important;table-layout:fixed!important;}
+  thead th,tbody td{padding:6px 4px!important;font-size:11px!important;word-break:break-word;}
+  th:nth-child(6),td:nth-child(6){display:none!important;} /* ซ่อนคอลัมน์ "โดนบิด" บนมือถือ */
   tbody tr.day-row{min-height:44px;}
-  /* item row */
-  .item-row{flex-wrap:wrap;gap:5px;padding:9px 10px;}
-  .item-name{width:100%;font-size:13.5px;}
-  .item-nai,.item-jen{flex:1;font-size:12px;}
-  .item-cat{width:100%;margin-top:2px;}
+  /* item row — เรียงไม่ล้นขอบ */
+  .items-wrap{padding:8px!important;}
+  .item-row{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;padding:8px 6px!important;gap:4px!important;border-bottom:1px solid rgba(255,255,255,.05);}
+  .item-name{width:100%!important;font-weight:600!important;font-size:13px!important;margin-bottom:2px;}
+  .item-cat{width:auto!important;}
+  .item-nai,.item-jen{width:auto!important;font-size:11px!important;}
+  .item-acts{width:auto!important;margin-left:auto;}
   .item-acts .btn-sm{min-height:32px;padding:5px 9px;}
-  .items-wrap{padding:8px 10px 14px;}
   /* scratch */
   .scratch-cols{grid-template-columns:1fr;}
   /* summary */
