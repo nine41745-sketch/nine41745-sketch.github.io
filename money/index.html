@@ -1732,8 +1732,9 @@ function initCats(){
 }
 function syncSettingsToFirebase(){
   if(!window._fbDb)return;
-  const settings={cats:_catsData,budget:getBudget()};
-  window._fbDb.ref('lucky_uefa_settings').set(settings).catch(e=>console.error('Settings sync error:',e));
+  // ใช้ .update() ไม่ใช่ .set() — กัน lastUpdatedMs โดนเขียนทับหายทุกครั้งที่แก้หมวดหมู่/งบประมาณ
+  const settings={cats:_catsData,budget:getBudget(),lastUpdatedMs:firebase.database.ServerValue.TIMESTAMP};
+  window._fbDb.ref('lucky_uefa_settings').update(settings).catch(e=>console.error('Settings sync error:',e));
 }
 function saveCatsData(){localStorage.setItem('bh_cats',JSON.stringify(_catsData));initCats();syncSettingsToFirebase();}
 function rebuildCatSelects(){
@@ -1985,6 +1986,18 @@ function initFirebaseDB(config){
         window._fbRef.set(DB);
       }
       updateSyncBadge('ok');
+      // เผื่อ settings listener ยังไม่ทันอัปเดต — ดึง lastUpdatedMs ล่าสุดมาแสดงซ้ำทุกครั้งที่ข้อมูลหลักเปลี่ยน
+      if(window._fbSettingsRef){
+        window._fbSettingsRef.child('lastUpdatedMs').once('value',(s2)=>{
+          const ms=s2.val();
+          if(ms){
+            const _txt='อัพเดท '+formatThaiTS(ms);
+            const _lu=document.getElementById('lastUpdated');
+            if(_lu)_lu.textContent=_txt;
+            localStorage.setItem('bh_last_updated',_txt);
+          }
+        }).catch(()=>{});
+      }
       const sv=document.getElementById('fb-setup-view');if(sv)sv.style.display='none';
       const cv=document.getElementById('fb-connected-view');if(cv)cv.style.display='block';
       const pn=document.getElementById('fb-project-name');if(pn)pn.textContent=config.projectId||'';
