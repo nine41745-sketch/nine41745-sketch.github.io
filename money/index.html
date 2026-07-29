@@ -1172,11 +1172,8 @@ function save(){
     DB[curMonth].updatedAt=_nowMs;
   }
   localStorage.setItem('bh_data2',JSON.stringify(DB));
-  // แสดงผลชั่วคราวจากเวลาเครื่อง (optimistic) — จะถูกแทนที่ด้วยเวลาเซิร์ฟเวอร์จริงทันทีที่ sync กลับมา
-  const _lu=document.getElementById('lastUpdated');
-  const _optimisticTs='อัพเดท '+formatThaiTS(_nowMs);
-  if(_lu)_lu.textContent=_optimisticTs;
-  localStorage.setItem('bh_last_updated',_optimisticTs);
+  // ไม่เขียนเวลาจากนาฬิกาเครื่องลง DOM/localStorage แล้ว — #lastUpdated จะอัปเดตจาก
+  // Firebase Server Timestamp เท่านั้น (ผ่าน _fbSettingsRef listener ด้านล่าง) เพื่อให้ทุกเครื่องตรงกันเป๊ะ
   if(window._fbRef&&curMonth&&DB[curMonth]){
     // Granular: อัปเดตเฉพาะเดือนที่แก้ไข ไม่เขียนทับทั้ง DB
     window._fbRef.child(curMonth).set(DB[curMonth])
