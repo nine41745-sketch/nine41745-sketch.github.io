@@ -199,6 +199,13 @@
 .fb-disconnect-btn{background:#f8717120;border:1px solid #f87171;border-radius:10px;color:#f87171;padding:10px 16px;font-size:14px;font-family:'Sarabun',sans-serif;cursor:pointer;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 20px;font-size:13px;color:#e2e8f0;z-index:300;transition:transform .3s ease;pointer-events:none;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
+  .cat-manage-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:320px;overflow-y:auto;}
+  .cat-manage-item{display:flex;gap:8px;align-items:center;}
+  .cat-manage-item .inp{flex:1;padding:8px 10px;font-size:13px;}
+  .cat-add-row{display:flex;gap:8px;padding-top:10px;border-top:1px solid #1e293b;}
+  body.light .cat-add-row{border-color:#e2e8f0;}
+  .cat-add-row .inp{flex:1;}
+  #taskInp{resize:none;overflow:hidden;min-height:42px;max-height:200px;line-height:1.5;font-family:'Sarabun',sans-serif;}
 
   /* ── QUICK NOTES DRAWER ─────────────────────────────── */
   .qn-fab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:40;background:linear-gradient(135deg,#818cf8,#c084fc);border:none;border-radius:14px 0 0 14px;color:#fff;width:44px;height:56px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:-2px 2px 12px #818cf840;transition:width .2s,box-shadow .2s;}
@@ -258,6 +265,7 @@
       <input id="searchInp" placeholder="ค้นหางาน..." oninput="render()">
     </div>
     <button class="toolbar-btn" onclick="toggleSummary()">📊 สรุป</button>
+    <button class="toolbar-btn" onclick="openCatModal()">⚙️ หมวดหมู่</button>
     <button class="toolbar-btn" id="themeBtn" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">🌙</button>
     <button class="fb-btn fb-on" id="fbBtn" onclick="openFbModal()">☁️ Sync <span id="fbStatus">🟢</span></button>
     <button class="toolbar-btn" onclick="exportData()">📤 ส่งออก</button>
@@ -273,7 +281,7 @@
   <div class="add-card">
     <div class="fg" style="margin-bottom:8px">
       <label class="lbl">ชื่องาน</label>
-      <input class="inp" id="taskInp" placeholder="พิมพ์งานที่ต้องทำ..." oninput="checkDuplicate()" onkeydown="if(event.key===&#39;Enter&#39;)addTask()">
+      <textarea class="inp" id="taskInp" rows="1" placeholder="พิมพ์งานที่ต้องทำ... (พิมพ์หลายบรรทัดเพื่อเพิ่มพร้อมกัน, Shift+Enter ขึ้นบรรทัดใหม่)" oninput="checkDuplicate();autoResizeTaskInp(this)" onkeydown="handleTaskInpKeydown(event)"></textarea>
       <div class="dup-warn" id="dupWarn"></div>
     </div>
     <div class="row2">
@@ -439,11 +447,36 @@
     </div>
   </div>
 </div>
+<!-- Category Manage Modal -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal">
+    <h3>⚙️ จัดการหมวดหมู่</h3>
+    <div class="cat-manage-list" id="catManageList"></div>
+    <div class="cat-add-row">
+      <input class="inp" id="newCatInp" placeholder="เพิ่มหมวดหมู่ใหม่ เช่น 🎮 เกม" onkeydown="if(event.key===&#39;Enter&#39;)addCategory()">
+      <button class="btn-save" style="flex:none;padding:9px 16px;" onclick="addCategory()">+ เพิ่ม</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" style="flex:1;" onclick="closeCatModal()">ปิด</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast">📥 นำเข้า 89 รายการแล้ว</div>
 
 <script>
-const CATS=['🏠 ส่วนตัว','💼 งาน','🛒 ซื้อของ','🏥 สุขภาพ','💜 อื่นๆ','🚗 รถ','💰 การเงิน','🐱 น้องแมว','📚 เรียน/สอบ','✈️ ท่องเที่ยว','👨‍👩‍👧 ครอบครัว','📱 โซเชียล'];
 const CCLS=['c0','c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11'];
+const DEFAULT_CATEGORIES=['🏠 ส่วนตัว','💼 งาน','🛒 ซื้อของ','🏥 สุขภาพ','💜 อื่นๆ','🚗 รถ','💰 การเงิน','🐱 น้องแมว','📚 เรียน/สอบ','✈️ ท่องเที่ยว','👨‍👩‍👧 ครอบครัว','📱 โซเชียล'].map((label,id)=>({id,label}));
+let categories=JSON.parse(localStorage.getItem('todo_categories')||'null')||DEFAULT_CATEGORIES.slice();
+function catLabel(id){ const c=categories.find(c=>c.id===id); return c?c.label:'💜 อื่นๆ'; }
+function catClass(id){ return CCLS[((id%12)+12)%12]; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function renderCatOptions(){
+  const opts=categories.map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+  const sel1=document.getElementById('catSel'), sel2=document.getElementById('editCat');
+  if(sel1){ const v1=sel1.value; sel1.innerHTML=opts; if([...sel1.options].some(o=>o.value===v1)) sel1.value=v1; }
+  if(sel2){ const v2=sel2.value; sel2.innerHTML=opts; if([...sel2.options].some(o=>o.value===v2)) sel2.value=v2; }
+}
+renderCatOptions();
 const SEED_VERSION=3;
 const ALL_SEED_TASKS=[
   {text:'ดูเสื้อแขนยาวที่นายจะซื้อใส่อัลบั้ม',pri:'low',cat:2},
@@ -759,8 +792,15 @@ function similarity(a,b){
   return matches/longer.length;
 }
 function checkDuplicate(){
-  const txt=document.getElementById('taskInp').value.trim();
+  const raw=document.getElementById('taskInp').value;
   const warn=document.getElementById('dupWarn');
+  const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(lines.length>1){
+    warn.innerHTML=`📝 พร้อมเพิ่ม ${lines.length} งานพร้อมกัน (กด + เพิ่มงาน หรือ Enter)`;
+    warn.classList.add('show');
+    return;
+  }
+  const txt=lines[0]||'';
   if(!txt||txt.length<3){ warn.classList.remove('show'); return; }
   const exact=tasks.find(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
   if(exact){ warn.innerHTML=`⚠️ มีงานนี้อยู่แล้ว: "<b>${exact.text}</b>"`; warn.classList.add('show'); return; }
@@ -768,24 +808,44 @@ function checkDuplicate(){
   if(similar){ warn.innerHTML=`💡 คล้ายกับที่มีอยู่: "<b>${similar.text}</b>" — ยังเพิ่มได้ถ้าต่างกัน`; warn.classList.add('show'); return; }
   warn.classList.remove('show');
 }
+function autoResizeTaskInp(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,200)+'px';
+}
+function handleTaskInpKeydown(e){
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    addTask();
+  }
+}
 
 function addTask(){
-  const txt=document.getElementById('taskInp').value.trim();
-  if(!txt){ document.getElementById('taskInp').focus(); return; }
-  const exact=tasks.find(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
-  if(exact){ showToast('⚠️ มีงานนี้อยู่แล้ว'); document.getElementById('taskInp').select(); return; }
+  const raw=document.getElementById('taskInp').value;
+  const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ document.getElementById('taskInp').focus(); return; }
   const cat=parseInt(document.getElementById('catSel').value);
   const pri=document.getElementById('priSel').value;
   const due=document.getElementById('dueSel').value;
   const note=document.getElementById('noteInp').value.trim();
-  tasks.unshift({id:Date.now(),text:txt,done:false,pri,cat,due,note,pinned:false,addedDate:new Date().toISOString()});
+  const base=Date.now();
+  let added=0, skipped=0;
+  lines.forEach((txt,i)=>{
+    const isDupExisting=tasks.some(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
+    const isDupInBatch=lines.slice(0,i).some(l=>l.toLowerCase()===txt.toLowerCase());
+    if(isDupExisting||isDupInBatch){ skipped++; return; }
+    tasks.unshift({id:base+i,text:txt,done:false,pri,cat,due,note,pinned:false,addedDate:new Date().toISOString()});
+    added++;
+  });
   save(); render();
   document.getElementById('taskInp').value='';
+  autoResizeTaskInp(document.getElementById('taskInp'));
   document.getElementById('noteInp').value='';
   if(!todayLocked) document.getElementById('dueSel').value='';
   document.getElementById('dupWarn').classList.remove('show');
   document.getElementById('taskInp').focus();
-  showToast('✅ เพิ่มงานแล้ว');
+  if(added>1) showToast(`✅ เพิ่ม ${added} งานแล้ว` + (skipped?` (ข้าม ${skipped} ซ้ำ)`:''));
+  else if(added===1) showToast('✅ เพิ่มงานแล้ว');
+  else showToast('⚠️ ไม่มีงานใหม่ (ซ้ำทั้งหมด)');
 }
 
 function toggle(id){
@@ -881,7 +941,7 @@ function renderSummary(){
   pending.forEach(t=>{ counts[t.cat]=(counts[t.cat]||0)+1; });
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   if(!sorted.length){ grid.innerHTML='<div style="color:#475569;font-size:12px">ไม่มีงานค้าง 🎉</div>'; return; }
-  grid.innerHTML=sorted.map(([cat,n])=>`<div class="sum-item"><span class="sum-cat">${CATS[parseInt(cat)]||'อื่นๆ'}</span><span class="sum-count">${n}</span></div>`).join('');
+  grid.innerHTML=sorted.map(([cat,n])=>`<div class="sum-item"><span class="sum-cat">${catLabel(parseInt(cat))}</span><span class="sum-count">${n}</span></div>`).join('');
 }
 
 function exportData(){
@@ -995,7 +1055,7 @@ function render(){
       <div class="todo-body">
         <div class="todo-text">${t.text}${t.pinned&&!t.done?' <span class="tag-pin">📌</span>':''}</div>
         <div class="todo-meta">
-          <span class="tag-cat ${CCLS[t.cat]||'c4'}">${CATS[t.cat]||'อื่นๆ'}</span>
+          <span class="tag-cat ${catClass(t.cat)}">${catLabel(t.cat)}</span>
           ${dueTag}
         </div>
         ${t.note?`<div class="todo-note">📌 ${t.note}</div>`:''}
@@ -1163,6 +1223,110 @@ document.addEventListener('keydown', function(e) {
 (function waitForFB() {
   if (_fbDb) { initQNFirebase(); return; }
   setTimeout(waitForFB, 500);
+})();
+
+// ── CATEGORY MANAGEMENT ─────────────────────────────────
+let _catRef = null;
+let _catLastSaveTime = 0;
+
+function initCatFirebase(){
+  if(!_fbDb) return;
+  _catRef=_fbDb.ref('categories');
+  _catRef.on('value',(snap)=>{
+    if(Date.now()-_catLastSaveTime<2000) return; // ป้องกัน race condition
+    const data=snap.val();
+    if(data&&Array.isArray(data)&&data.length){
+      const incoming=JSON.stringify(data), current=JSON.stringify(categories);
+      if(incoming!==current){
+        categories=data;
+        localStorage.setItem('todo_categories',JSON.stringify(categories));
+        renderCatOptions();
+        render();
+        const modal=document.getElementById('catModal');
+        if(modal&&modal.classList.contains('open')) renderCatModal();
+      }
+    }else if(!data){
+      _catRef.set(categories);
+    }
+  },(err)=>console.error('Category Firebase error:',err));
+}
+
+function saveCategories(){
+  localStorage.setItem('todo_categories',JSON.stringify(categories));
+  renderCatOptions();
+  if(_catRef){
+    _catLastSaveTime=Date.now();
+    _catRef.set(categories).catch(e=>{
+      console.error('Category save error:',e);
+      showToast('⚠️ บันทึกหมวดหมู่ Local แล้ว แต่ Sync ไม่สำเร็จ');
+    });
+  }
+  render();
+}
+
+function openCatModal(){
+  renderCatModal();
+  document.getElementById('catModal').classList.add('open');
+}
+function closeCatModal(){
+  document.getElementById('catModal').classList.remove('open');
+}
+document.getElementById('catModal').addEventListener('click',function(e){ if(e.target===this)closeCatModal(); });
+
+function renderCatModal(){
+  const list=document.getElementById('catManageList');
+  if(!list) return;
+  list.innerHTML=categories.map(c=>`
+    <div class="cat-manage-item" data-id="${c.id}">
+      <input class="inp" value="${escapeHtml(c.label)}" onchange="renameCategory(${c.id},this.value)">
+      <button class="del-btn" onclick="deleteCategory(${c.id})" title="ลบหมวดหมู่">🗑</button>
+    </div>`).join('');
+}
+
+function renameCategory(id,newLabel){
+  newLabel=newLabel.trim();
+  if(!newLabel){ renderCatModal(); return; }
+  const c=categories.find(c=>c.id===id);
+  if(c && c.label!==newLabel){ c.label=newLabel; saveCategories(); showToast('✏️ แก้ไขหมวดหมู่แล้ว'); }
+}
+
+function addCategory(){
+  const inp=document.getElementById('newCatInp');
+  const label=inp.value.trim();
+  if(!label){ inp.focus(); return; }
+  const id=Date.now();
+  categories.push({id,label});
+  inp.value='';
+  saveCategories();
+  renderCatModal();
+  showToast('➕ เพิ่มหมวดหมู่แล้ว');
+}
+
+function deleteCategory(id){
+  if(categories.length<=1){ showToast('⚠️ ต้องมีอย่างน้อย 1 หมวดหมู่'); return; }
+  const used=tasks.filter(t=>t.cat===id).length;
+  const doDelete=()=>{
+    categories=categories.filter(c=>c.id!==id);
+    if(used>0){
+      const fallback=categories[0].id;
+      tasks.forEach(t=>{ if(t.cat===id) t.cat=fallback; });
+      save();
+    }
+    saveCategories();
+    renderCatModal();
+    showToast('🗑 ลบหมวดหมู่แล้ว');
+  };
+  if(used>0){
+    showConfirm(`หมวดหมู่นี้มี ${used} งานอยู่`,'งานเหล่านั้นจะถูกย้ายไปหมวดหมู่แรกแทน',doDelete,'ลบ');
+  } else {
+    doDelete();
+  }
+}
+
+// Init Category Firebase เมื่อ Firebase พร้อม
+(function waitForFBCat() {
+  if (_fbDb) { initCatFirebase(); return; }
+  setTimeout(waitForFBCat, 500);
 })();
 
 </script>
