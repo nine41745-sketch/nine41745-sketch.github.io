@@ -199,6 +199,46 @@
 .fb-disconnect-btn{background:#f8717120;border:1px solid #f87171;border-radius:10px;color:#f87171;padding:10px 16px;font-size:14px;font-family:'Sarabun',sans-serif;cursor:pointer;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 20px;font-size:13px;color:#e2e8f0;z-index:300;transition:transform .3s ease;pointer-events:none;white-space:nowrap;}
   .toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* ── QUICK NOTES DRAWER ─────────────────────────────── */
+  .qn-fab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:40;background:linear-gradient(135deg,#818cf8,#c084fc);border:none;border-radius:14px 0 0 14px;color:#fff;width:44px;height:56px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:-2px 2px 12px #818cf840;transition:width .2s,box-shadow .2s;}
+  .qn-fab:hover{width:52px;box-shadow:-4px 4px 20px #818cf860;}
+  .qn-backdrop{display:none;position:fixed;inset:0;background:#00000055;z-index:41;backdrop-filter:blur(2px);}
+  .qn-backdrop.open{display:block;}
+  .qn-drawer{position:fixed;top:0;right:-400px;width:380px;height:100vh;background:#0f172a;border-left:1px solid #1e293b;z-index:42;display:flex;flex-direction:column;transition:right .3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 32px #00000060;}
+  .qn-drawer.open{right:0;}
+  body.light .qn-drawer{background:#ffffff;border-color:#e2e8f0;}
+  body.light .qn-fab{box-shadow:-2px 2px 12px #818cf850;}
+  .qn-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #1e293b;flex-shrink:0;}
+  body.light .qn-header{border-color:#e2e8f0;}
+  .qn-title{font-size:15px;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:8px;}
+  body.light .qn-title{color:#1e293b;}
+  .qn-close{background:transparent;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;transition:color .2s;}
+  .qn-close:hover{color:#f87171;}
+  .qn-status{padding:6px 18px;font-size:11px;display:flex;align-items:center;gap:6px;flex-shrink:0;min-height:28px;}
+  .qn-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .qn-status-text{color:#64748b;}
+  body.light .qn-status-text{color:#94a3b8;}
+  .qn-body{flex:1;padding:12px 18px;overflow:hidden;display:flex;}
+  .qn-textarea{width:100%;height:100%;background:#0a0f1e;border:1px solid #1e293b;border-radius:12px;color:#e2e8f0;font-size:14px;font-family:'Sarabun',sans-serif;padding:12px 14px;resize:none;outline:none;line-height:1.7;transition:border-color .2s;}
+  .qn-textarea:focus{border-color:#818cf8;}
+  .qn-textarea::placeholder{color:#334155;}
+  body.light .qn-textarea{background:#f8fafc;border-color:#e2e8f0;color:#1e293b;}
+  body.light .qn-textarea::placeholder{color:#cbd5e1;}
+  body.light .qn-textarea:focus{border-color:#818cf8;}
+  .qn-footer{display:flex;gap:8px;padding:12px 18px 20px;flex-shrink:0;border-top:1px solid #1e293b;}
+  body.light .qn-footer{border-color:#e2e8f0;}
+  .qn-btn-copy{flex:1;background:linear-gradient(135deg,#818cf8,#c084fc);border:none;border-radius:10px;color:#fff;padding:10px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;font-weight:600;transition:opacity .2s;}
+  .qn-btn-copy:hover{opacity:.85;}
+  .qn-btn-clear{background:#f8717120;border:1px solid #f8717140;border-radius:10px;color:#f87171;padding:10px 14px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;}
+  .qn-btn-clear:hover{background:#f8717130;border-color:#f87171;}
+  /* Mobile: Bottom Sheet */
+  @media(max-width:767px){
+    .qn-fab{top:auto;bottom:80px;transform:none;border-radius:14px 0 0 14px;}
+    .qn-drawer{top:auto;bottom:-100%;right:0;width:100%;height:85vh;border-left:none;border-top:1px solid #1e293b;border-radius:20px 20px 0 0;transition:bottom .3s cubic-bezier(.4,0,.2,1);}
+    .qn-drawer.open{bottom:0;right:0;}
+    body.light .qn-drawer{border-color:#e2e8f0;}
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -981,5 +1021,175 @@ render();
 })();
 _pageLoading = false;
 loadTheme();
+
+// ── QUICK NOTES ────────────────────────────────────────
+let _qnRef = null;
+let _qnDebounceTimer = null;
+let _qnLoaded = false;
+
+function initQNFirebase() {
+  if (!_fbDb) return;
+  _qnRef = _fbDb.ref('quick_note');
+  _qnRef.on('value', (snap) => {
+    const data = snap.val();
+    const ta = document.getElementById('qnTextarea');
+    if (!ta) return;
+    if (!_qnLoaded) {
+      // โหลดครั้งแรก — ตั้งค่า textarea
+      ta.value = (data && data.content) ? data.content : '';
+      _qnLoaded = true;
+      setQNStatus('saved', data && data.updatedAt ? data.updatedAt : null);
+    }
+  }, (err) => {
+    console.error('QN Firebase error:', err);
+    setQNStatus('error');
+    // fallback: โหลดจาก localStorage
+    const ta = document.getElementById('qnTextarea');
+    if (ta && !_qnLoaded) {
+      ta.value = localStorage.getItem('qn_content') || '';
+      _qnLoaded = true;
+      setQNStatus('local');
+    }
+  });
+}
+
+function setQNStatus(state, updatedAt) {
+  const dot = document.getElementById('qnStatusDot');
+  const txt = document.getElementById('qnStatusText');
+  if (!dot || !txt) return;
+  const map = {
+    typing:    { color: '#94a3b8', label: '⚪ กำลังพิมพ์...' },
+    saving:    { color: '#fbbf24', label: '🟡 กำลังบันทึก...' },
+    saved:     { color: '#34d399', label: updatedAt ? '🟢 บันทึกแล้วเมื่อ ' + updatedAt : '🟢 บันทึกแล้ว' },
+    error:     { color: '#f87171', label: '🔴 Sync ไม่สำเร็จ' },
+    local:     { color: '#94a3b8', label: '⚪ โหลดจาก Local' },
+    loading:   { color: '#475569', label: 'โหลดข้อมูล...' },
+  };
+  const s = map[state] || map.loading;
+  dot.style.background = s.color;
+  txt.textContent = s.label;
+}
+
+function onQNInput() {
+  setQNStatus('typing');
+  clearTimeout(_qnDebounceTimer);
+  _qnDebounceTimer = setTimeout(saveQNNote, 1500);
+}
+
+function saveQNNote() {
+  const ta = document.getElementById('qnTextarea');
+  if (!ta) return;
+  const content = ta.value;
+  localStorage.setItem('qn_content', content);
+  if (_qnRef) {
+    setQNStatus('saving');
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    _qnRef.set({ content, updatedAt: timeStr })
+      .then(() => setQNStatus('saved', timeStr))
+      .catch(() => {
+        setQNStatus('error');
+        showToast('⚠️ โน้ตบันทึก Local แล้ว แต่ Sync ไม่สำเร็จ');
+      });
+  } else {
+    const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    setQNStatus('saved', timeStr);
+  }
+}
+
+function copyQNNote() {
+  const ta = document.getElementById('qnTextarea');
+  if (!ta || !ta.value.trim()) { showToast('📋 ไม่มีโน้ตให้คัดลอก'); return; }
+  navigator.clipboard.writeText(ta.value)
+    .then(() => showToast('📋 คัดลอกแล้ว!'))
+    .catch(() => {
+      ta.select();
+      document.execCommand('copy');
+      showToast('📋 คัดลอกแล้ว!');
+    });
+}
+
+function clearQNNote() {
+  const ta = document.getElementById('qnTextarea');
+  if (!ta || !ta.value.trim()) return;
+  if (!confirm('ล้างโน้ตทั้งหมด?')) return;
+  ta.value = '';
+  saveQNNote();
+  showToast('🗑️ ล้างโน้ตแล้ว');
+}
+
+function toggleQNDrawer() {
+  const drawer = document.getElementById('qnDrawer');
+  if (drawer.classList.contains('open')) closeQNDrawer();
+  else openQNDrawer();
+}
+
+function openQNDrawer() {
+  document.getElementById('qnDrawer').classList.add('open');
+  document.getElementById('qnBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // ถ้ายังไม่ได้ init Firebase ให้ fallback localStorage
+  if (!_qnLoaded) {
+    if (_fbDb && !_qnRef) initQNFirebase();
+    else if (!_fbDb) {
+      const ta = document.getElementById('qnTextarea');
+      if (ta) ta.value = localStorage.getItem('qn_content') || '';
+      _qnLoaded = true;
+      setQNStatus('local');
+    }
+  }
+  setTimeout(() => document.getElementById('qnTextarea')?.focus(), 300);
+}
+
+function closeQNDrawer() {
+  document.getElementById('qnDrawer').classList.remove('open');
+  document.getElementById('qnBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  clearTimeout(_qnDebounceTimer);
+  // auto-save ทันทีตอนปิด ถ้ายังค้างอยู่
+  const ta = document.getElementById('qnTextarea');
+  if (ta) {
+    const saved = localStorage.getItem('qn_content');
+    if (ta.value !== saved) saveQNNote();
+  }
+}
+
+// Keyboard shortcut: Escape ปิด drawer
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeQNDrawer();
+});
+
+// Init QN Firebase เมื่อ Firebase พร้อม (หลัง initFirebaseDB)
+(function waitForFB() {
+  if (_fbDb) { initQNFirebase(); return; }
+  setTimeout(waitForFB, 500);
+})();
+
 </script>
+
+<!-- Quick Notes FAB -->
+<button class="qn-fab" onclick="toggleQNDrawer()" title="Quick Notes">📝</button>
+
+<!-- Quick Notes Backdrop -->
+<div class="qn-backdrop" id="qnBackdrop" onclick="closeQNDrawer()"></div>
+
+<!-- Quick Notes Drawer -->
+<div class="qn-drawer" id="qnDrawer">
+  <div class="qn-header">
+    <div class="qn-title">📝 Quick Notes</div>
+    <button class="qn-close" onclick="closeQNDrawer()">✕</button>
+  </div>
+  <div class="qn-status" id="qnStatus">
+    <span class="qn-status-dot" id="qnStatusDot" style="background:#475569"></span>
+    <span class="qn-status-text" id="qnStatusText">โหลดข้อมูล...</span>
+  </div>
+  <div class="qn-body">
+    <textarea class="qn-textarea" id="qnTextarea" placeholder="จดไอเดีย, โน้ตด่วน, To-Do...&#10;บันทึกอัตโนมัติเมื่อหยุดพิมพ์" oninput="onQNInput()"></textarea>
+  </div>
+  <div class="qn-footer">
+    <button class="qn-btn-copy" onclick="copyQNNote()">📋 Copy Notes</button>
+    <button class="qn-btn-clear" onclick="clearQNNote()">🗑️ Clear</button>
+  </div>
+</div>
+
 </body></html>
