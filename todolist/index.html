@@ -227,6 +227,25 @@
   .batch-add-row-btn{width:100%;background:transparent;border:1.5px dashed #334155;border-radius:10px;color:#64748b;padding:10px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;}
   .batch-add-row-btn:hover{border-color:#818cf8;color:#818cf8;}
   body.light .batch-add-row-btn{border-color:#cbd5e1;color:#94a3b8;}
+  .batch-set-today-all-btn{width:100%;background:#818cf815;border:1px solid #818cf840;border-radius:10px;color:#818cf8;padding:9px;font-size:12.5px;font-family:'Sarabun',sans-serif;cursor:pointer;margin-bottom:12px;font-weight:600;transition:all .2s;}
+  .batch-set-today-all-btn:hover{background:#818cf825;}
+  .batch-row-today{flex:0 0 auto;background:transparent;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:13px;padding:6px 8px;border-radius:8px;transition:all .2s;}
+  .batch-row-today:hover{border-color:#818cf8;color:#818cf8;background:#818cf815;}
+  body.light .batch-row-today{border-color:#cbd5e1;color:#64748b;}
+  .backup-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#0a0f1e;border:1px solid #1e293b;border-radius:10px;padding:10px 12px;}
+  body.light .backup-item{background:#f8fafc;border-color:#e2e8f0;}
+  .backup-item-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .backup-item-label{font-size:13px;font-weight:600;color:#e2e8f0;}
+  body.light .backup-item-label{color:#1e293b;}
+  .backup-item-meta{font-size:11px;color:#64748b;}
+  .backup-restore-btn{background:#818cf820;border:1px solid #818cf850;border-radius:8px;color:#818cf8;padding:7px 12px;font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+  .backup-restore-btn:hover{background:#818cf830;}
+  .cat-filter-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#818cf815;border:1px solid #818cf840;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;color:#818cf8;}
+  .cat-filter-chip button{background:transparent;border:none;color:#818cf8;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;}
+  .cat-filter-chip button:hover{background:#818cf825;}
+  body.light .cat-filter-chip{background:#818cf815;border-color:#818cf840;color:#4f46e5;}
+  .sum-item{cursor:pointer;transition:background .15s;}
+  .sum-item:hover{background:#818cf815;}
 
   /* ── QUICK NOTES DRAWER ─────────────────────────────── */
   .qn-fab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:40;background:linear-gradient(135deg,#818cf8,#c084fc);border:none;border-radius:14px 0 0 14px;color:#fff;width:44px;height:56px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:-2px 2px 12px #818cf840;transition:width .2s,box-shadow .2s;}
@@ -260,9 +279,10 @@
   .qn-btn-copy:hover{opacity:.85;}
   .qn-btn-clear{background:#f8717120;border:1px solid #f8717140;border-radius:10px;color:#f87171;padding:10px 14px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;}
   .qn-btn-clear:hover{background:#f8717130;border-color:#f87171;}
-  /* Mobile: Bottom Sheet */
+  /* Mobile: ย้าย FAB ไปมุมขวาบน ไม่บังช่องกรอกงาน/แป้นพิมพ์, Drawer เป็น Bottom Sheet */
   @media(max-width:767px){
-    .qn-fab{top:auto;bottom:80px;transform:none;border-radius:14px 0 0 14px;}
+    .qn-fab{position:fixed;top:14px;right:14px;bottom:auto;left:auto;transform:none;width:42px;height:42px;border-radius:50%;font-size:17px;box-shadow:0 2px 10px #818cf850;}
+    .qn-fab:hover{width:42px;}
     .qn-drawer{top:auto;bottom:-100%;right:0;width:100%;height:85vh;border-left:none;border-top:1px solid #1e293b;border-radius:20px 20px 0 0;transition:bottom .3s cubic-bezier(.4,0,.2,1);}
     .qn-drawer.open{bottom:0;right:0;}
     body.light .qn-drawer{border-color:#e2e8f0;}
@@ -279,7 +299,7 @@
   <h1>📝 สิ่งที่ต้องทำ</h1>
   <div class="subtitle" id="dateLabel">วันอาทิตย์ที่ 28 มิถุนายน 2569</div>
   <div class="last-updated" id="lastUpdatedLabel"></div>
-  <div class="version-tag">🏷️ v3.2.0</div>
+  <div class="version-tag">🏷️ v3.3.0</div>
 
   <div class="toolbar">
     <div class="search-wrap">
@@ -293,11 +313,14 @@
     <button class="toolbar-btn" onclick="exportData()">📤 ส่งออก</button>
     <button class="toolbar-btn" onclick="document.getElementById(&#39;importFile&#39;).click()">📥 นำเข้า</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="toolbar-btn" onclick="openBackupModal()">⏮️ กู้คืนข้อมูล</button>
   </div>
 
   <div class="summary-bar" id="summaryBar">
     <div class="summary-title">📊 สรุปรายหมวด (ยังไม่เสร็จ)</div>
     <div class="summary-grid" id="summaryGrid"></div>
+    <div class="summary-title" style="margin-top:14px;">🚦 สรุปความเร่งด่วน (ยังไม่เสร็จ)</div>
+    <div class="summary-grid" id="summaryGridPri"></div>
   </div>
 
   <div class="add-card">
@@ -361,6 +384,9 @@
     <button class="filter-btn" data-filter="done" onclick="setFilter(&#39;done&#39;,this)">เสร็จแล้ว <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">1</span></button>
     <button class="filter-btn" data-filter="overdue" onclick="setFilter(&#39;overdue&#39;,this)">🔴 เกินกำหนด <span style="background:#f8717130;color:#f87171;border-radius:10px;padding:1px 7px;font-size:11px;">8</span></button>
     <button class="filter-btn" data-filter="pinned" onclick="setFilter(&#39;pinned&#39;,this)">📌 ปักหมุด</button>
+    <button class="filter-btn" data-filter="within7" onclick="setFilter(&#39;within7&#39;,this)">⏳ ภายใน 7 วัน</button>
+    <button class="filter-btn" data-filter="within15" onclick="setFilter(&#39;within15&#39;,this)">🗓️ ภายใน 15 วัน</button>
+    <button class="filter-btn" data-filter="within30" onclick="setFilter(&#39;within30&#39;,this)">📅 ภายใน 1 เดือน</button>
   </div>
 
   <div class="stats-row">
@@ -368,6 +394,7 @@
     <button class="toolbar-btn danger" id="clearDoneBtn" onclick="clearDone()" style="font-size: 12px; padding: 5px 10px;">🗑 ลบงานเสร็จทั้งหมด</button>
   </div>
 
+  <div id="catFilterChip" style="display:none;"></div>
   <div class="todo-list" id="list"></div>
 </div>
 
@@ -490,11 +517,23 @@
 <div class="modal-overlay batch-modal" id="batchModal">
   <div class="modal">
     <h3>✨ เพิ่มหลายรายการ</h3>
+    <button type="button" class="batch-set-today-all-btn" onclick="setAllBatchRowsToday()">📅 กำหนดเป็นวันนี้ทุกแถว</button>
     <div class="batch-rows-container" id="batchRowsContainer"></div>
     <button type="button" class="batch-add-row-btn" onclick="addBatchRow()">+ เพิ่มแถว</button>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeBatchModal()">ยกเลิก</button>
       <button class="btn-save" onclick="saveBatchTasks()">💾 บันทึกทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Restore Backup Modal -->
+<div class="modal-overlay" id="backupModal">
+  <div class="modal">
+    <h3>⏮️ กู้คืนข้อมูล</h3>
+    <div id="backupList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:360px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" style="flex:1;" onclick="closeBackupModal()">ปิด</button>
     </div>
   </div>
 </div>
@@ -640,6 +679,8 @@ tasks.forEach(t=>{
 save();
 let filter='all';
 let summaryVisible=false;
+let summaryCatFilter=null;
+let summaryPriFilter=null;
 
 // ── FIREBASE CONFIG (hardcoded) ──────────────────
 const _HARDCODED_FB_CONFIG = {
@@ -885,8 +926,20 @@ function createBatchRowHtml(){
       <option value="high">🔴 เร่งด่วน</option>
     </select>
     <input class="inp batch-row-due" type="date">
+    <button type="button" class="batch-row-today" onclick="setBatchRowToday(this)" title="ตั้งเป็นวันนี้">📅</button>
     <button type="button" class="batch-row-remove" onclick="this.closest('.batch-row').remove()" title="ลบแถวนี้">✕</button>
   </div>`;
+}
+function setBatchRowToday(btn){
+  const row=btn.closest('.batch-row');
+  const dueInp=row.querySelector('.batch-row-due');
+  if(dueInp) dueInp.value=todayStr();
+}
+function setAllBatchRowsToday(){
+  const inputs=document.querySelectorAll('#batchRowsContainer .batch-row-due');
+  if(!inputs.length) return;
+  inputs.forEach(inp=>{ inp.value=todayStr(); });
+  showToast('📅 ตั้งวันนี้ให้ทุกแถวแล้ว');
 }
 function addBatchRow(){
   const container=document.getElementById('batchRowsContainer');
@@ -967,7 +1020,8 @@ function del(id){
 function clearDone(){
   const n=tasks.filter(t=>t.done).length;
   if(!n) return;
-  showConfirm(`ลบงานที่เสร็จแล้วทั้งหมด ${n} รายการ?`,'ไม่สามารถกู้คืนได้',()=>{
+  showConfirm(`ลบงานที่เสร็จแล้วทั้งหมด ${n} รายการ?`,'ระบบจะสำรองข้อมูลไว้ก่อนลบ กู้คืนได้ภายหลังจากปุ่ม ⏮️ กู้คืนข้อมูล',()=>{
+    pushBackupSnapshot(`ก่อนลบงานเสร็จ ${n} รายการ`);
     tasks=tasks.filter(t=>!t.done);
     save(); render(); showToast(`🗑 ลบงานเสร็จ ${n} รายการแล้ว`);
   });
@@ -1006,9 +1060,38 @@ document.getElementById('confirmOverlay').addEventListener('click',function(e){ 
 
 function setFilter(f,btn){
   filter=f;
+  summaryCatFilter=null;
+  summaryPriFilter=null;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   render();
+}
+function clearSummaryFilters(){
+  summaryCatFilter=null;
+  summaryPriFilter=null;
+  render();
+}
+function filterBySummaryCategory(catId){
+  summaryCatFilter=catId;
+  summaryPriFilter=null;
+  filter='todo';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const todoBtn=document.querySelector('.filter-btn[data-filter="todo"]');
+  if(todoBtn) todoBtn.classList.add('active');
+  render();
+  const listEl=document.getElementById('list');
+  if(listEl) listEl.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function filterBySummaryPriority(pri){
+  summaryPriFilter=pri;
+  summaryCatFilter=null;
+  filter='todo';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  const todoBtn=document.querySelector('.filter-btn[data-filter="todo"]');
+  if(todoBtn) todoBtn.classList.add('active');
+  render();
+  const listEl=document.getElementById('list');
+  if(listEl) listEl.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function toggleSummary(){
@@ -1019,12 +1102,25 @@ function toggleSummary(){
 function renderSummary(){
   if(!summaryVisible) return;
   const grid=document.getElementById('summaryGrid');
+  const gridPri=document.getElementById('summaryGridPri');
   const pending=tasks.filter(t=>!t.done);
   const counts={};
   pending.forEach(t=>{ counts[t.cat]=(counts[t.cat]||0)+1; });
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  if(!sorted.length){ grid.innerHTML='<div style="color:#475569;font-size:12px">ไม่มีงานค้าง 🎉</div>'; return; }
-  grid.innerHTML=sorted.map(([cat,n])=>`<div class="sum-item"><span class="sum-cat">${catLabel(parseInt(cat))}</span><span class="sum-count">${n}</span></div>`).join('');
+  if(!sorted.length){ grid.innerHTML='<div style="color:#475569;font-size:12px">ไม่มีงานค้าง 🎉</div>'; }
+  else{
+    grid.innerHTML=sorted.map(([cat,n])=>`<div class="sum-item" onclick="filterBySummaryCategory(${parseInt(cat)})" title="คลิกเพื่อกรองงานหมวดนี้"><span class="sum-cat">${catLabel(parseInt(cat))}</span><span class="sum-count">${n}</span></div>`).join('');
+  }
+  if(gridPri){
+    const priCounts={high:0,mid:0,low:0};
+    pending.forEach(t=>{ priCounts[t.pri]=(priCounts[t.pri]||0)+1; });
+    const priLabels={high:'🔴 เร่งด่วน',mid:'🟡 ด่วน',low:'🟢 ปกติ'};
+    const priEntries=Object.entries(priCounts).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+    if(!priEntries.length){ gridPri.innerHTML='<div style="color:#475569;font-size:12px">ไม่มีงานค้าง 🎉</div>'; }
+    else{
+      gridPri.innerHTML=priEntries.map(([pri,n])=>`<div class="sum-item" onclick="filterBySummaryPriority('${pri}')" title="คลิกเพื่อกรองงานความเร่งด่วนนี้"><span class="sum-cat">${priLabels[pri]}</span><span class="sum-count">${n}</span></div>`).join('');
+    }
+  }
 }
 
 function exportData(){
@@ -1044,7 +1140,8 @@ function importData(e){
       const data=JSON.parse(ev.target.result);
       const imported=Array.isArray(data)?data:(data.tasks||null);
       if(!Array.isArray(imported)) throw new Error('รูปแบบไม่ถูกต้อง');
-      showConfirm(`นำเข้า ${imported.length} รายการ?`,'ข้อมูลเดิมจะถูกแทนที่ทั้งหมด',()=>{
+      showConfirm(`นำเข้า ${imported.length} รายการ?`,'ข้อมูลเดิมจะถูกสำรองไว้ก่อนแทนที่ (กู้คืนได้จากปุ่ม ⏮️ กู้คืนข้อมูล)',()=>{
+        pushBackupSnapshot('ก่อนนำเข้าไฟล์ JSON');
         tasks=imported.map(t=>({...t,pinned:t.pinned||false}));
         save(); render(); showToast(`📥 นำเข้า ${imported.length} รายการแล้ว`);
       },'นำเข้า');
@@ -1052,6 +1149,61 @@ function importData(e){
   };
   reader.readAsText(file);
   e.target.value='';
+}
+
+// ── AUTO BACKUP SNAPSHOT & RESTORE ──────────────────────
+function pushBackupSnapshot(label){
+  try{
+    let backups=JSON.parse(localStorage.getItem('todo_backups')||'[]');
+    if(!Array.isArray(backups)) backups=[];
+    backups.unshift({ ts:Date.now(), label:label||'บันทึกอัตโนมัติ', count:tasks.length, tasks:JSON.parse(JSON.stringify(tasks)) });
+    backups=backups.slice(0,5);
+    localStorage.setItem('todo_backups',JSON.stringify(backups));
+  }catch(e){ console.error('Backup snapshot error:',e); }
+}
+function getBackups(){
+  try{ const b=JSON.parse(localStorage.getItem('todo_backups')||'[]'); return Array.isArray(b)?b:[]; }catch(e){ return []; }
+}
+function fmtBackupTime(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+}
+function renderBackupList(){
+  const list=document.getElementById('backupList');
+  if(!list) return;
+  const backups=getBackups();
+  if(!backups.length){
+    list.innerHTML='<div style="color:#475569;font-size:13px;text-align:center;padding:20px 0;line-height:1.6;">ยังไม่มีข้อมูลสำรอง<br><span style="font-size:11px;">ระบบจะสร้างอัตโนมัติเมื่อนำเข้าไฟล์ JSON หรือลบงานเสร็จ</span></div>';
+    return;
+  }
+  list.innerHTML=backups.map((b,i)=>`
+    <div class="backup-item">
+      <div class="backup-item-info">
+        <div class="backup-item-label">${escapeHtml(b.label)}</div>
+        <div class="backup-item-meta">${fmtBackupTime(b.ts)} · ${b.count} งาน</div>
+      </div>
+      <button class="backup-restore-btn" onclick="restoreBackup(${i})">↩️ กู้คืน</button>
+    </div>`).join('');
+}
+function openBackupModal(){
+  renderBackupList();
+  document.getElementById('backupModal').classList.add('open');
+}
+function closeBackupModal(){
+  document.getElementById('backupModal').classList.remove('open');
+}
+document.getElementById('backupModal').addEventListener('click',function(e){ if(e.target===this) closeBackupModal(); });
+function restoreBackup(index){
+  const backups=getBackups();
+  const b=backups[index];
+  if(!b) return;
+  showConfirm(`กู้คืนข้อมูลชุด "${b.label}"?`,`ข้อมูลปัจจุบัน (${tasks.length} งาน) จะถูกแทนที่ด้วยชุดนี้ (${b.count} งาน) — ระบบจะสำรองข้อมูลปัจจุบันไว้ก่อนด้วย`,()=>{
+    pushBackupSnapshot('ก่อนกู้คืนข้อมูล');
+    tasks=JSON.parse(JSON.stringify(b.tasks));
+    save(); render();
+    closeBackupModal();
+    showToast(`⏮️ กู้คืนข้อมูลแล้ว (${b.count} งาน)`);
+  },'กู้คืน');
 }
 
 let toastTimer=null;
@@ -1068,6 +1220,8 @@ function localMidnight(){ const n=new Date(); return new Date(n.getFullYear(),n.
 function isOverdue(t){ if(!t.due||t.done) return false; return parseLocalDate(t.due)<localMidnight(); }
 function isSoon(t){ if(!t.due||t.done) return false; const diff=(parseLocalDate(t.due)-localMidnight())/(1000*60*60*24); return diff>=0&&diff<=2; }
 function fmtDue(due){ return parseLocalDate(due).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}); }
+function daysUntilDue(t){ if(!t.due||t.done) return null; return Math.round((parseLocalDate(t.due)-localMidnight())/(1000*60*60*24)); }
+function isWithinDays(t,n){ const d=daysUntilDue(t); return d!==null&&d>=0&&d<=n; }
 
 function render(){
   const searchQ=document.getElementById('searchInp').value.trim().toLowerCase();
@@ -1083,13 +1237,19 @@ function render(){
   const doneCount=done;
   const overdueCount=overdue;
   const pinnedCount=tasks.filter(t=>t.pinned&&!t.done).length;
+  const within7Count=tasks.filter(t=>isWithinDays(t,7)).length;
+  const within15Count=tasks.filter(t=>isWithinDays(t,15)).length;
+  const within30Count=tasks.filter(t=>isWithinDays(t,30)).length;
   const filterLabels={
     'all':`ทั้งหมด${total>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+total+'</span>':''}`,
     'duetoday':`📅 วันนี้${todayCount>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+todayCount+'</span>':''}`,
     'todo':`ยังไม่เสร็จ${todoCount>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+todoCount+'</span>':''}`,
     'done':`เสร็จแล้ว${doneCount>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+doneCount+'</span>':''}`,
     'overdue':`🔴 เกินกำหนด${overdueCount>0?' <span style="background:#f8717130;color:#f87171;border-radius:10px;padding:1px 7px;font-size:11px;">'+overdueCount+'</span>':''}`,
-    'pinned':`📌 ปักหมุด${pinnedCount>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+pinnedCount+'</span>':''}`
+    'pinned':`📌 ปักหมุด${pinnedCount>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+pinnedCount+'</span>':''}`,
+    'within7':`⏳ ภายใน 7 วัน${within7Count>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+within7Count+'</span>':''}`,
+    'within15':`🗓️ ภายใน 15 วัน${within15Count>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+within15Count+'</span>':''}`,
+    'within30':`📅 ภายใน 1 เดือน${within30Count>0?' <span style="background:#334155;color:#94a3b8;border-radius:10px;padding:1px 7px;font-size:11px;">'+within30Count+'</span>':''}`
   };
   document.querySelectorAll('.filter-btn').forEach(btn=>{
     const f=btn.getAttribute('data-filter');
@@ -1102,6 +1262,27 @@ function render(){
   else if(filter==='done') filtered=tasks.filter(t=>t.done);
   else if(filter==='overdue') filtered=tasks.filter(t=>isOverdue(t));
   else if(filter==='pinned') filtered=tasks.filter(t=>t.pinned&&!t.done);
+  else if(filter==='within7') filtered=tasks.filter(t=>isWithinDays(t,7));
+  else if(filter==='within15') filtered=tasks.filter(t=>isWithinDays(t,15));
+  else if(filter==='within30') filtered=tasks.filter(t=>isWithinDays(t,30));
+  if(summaryCatFilter!==null) filtered=filtered.filter(t=>t.cat===summaryCatFilter);
+  if(summaryPriFilter!==null) filtered=filtered.filter(t=>t.pri===summaryPriFilter);
+  const catFilterChipEl=document.getElementById('catFilterChip');
+  if(catFilterChipEl){
+    const priChipLabels={high:'🔴 เร่งด่วน',mid:'🟡 ด่วน',low:'🟢 ปกติ'};
+    if(summaryCatFilter!==null){
+      catFilterChipEl.className='cat-filter-chip';
+      catFilterChipEl.style.display='flex';
+      catFilterChipEl.innerHTML=`<span>🔎 กำลังกรองหมวด: <b>${catLabel(summaryCatFilter)}</b></span><button onclick="clearSummaryFilters()">✕ ล้าง</button>`;
+    } else if(summaryPriFilter!==null){
+      catFilterChipEl.className='cat-filter-chip';
+      catFilterChipEl.style.display='flex';
+      catFilterChipEl.innerHTML=`<span>🔎 กำลังกรองความเร่งด่วน: <b>${priChipLabels[summaryPriFilter]}</b></span><button onclick="clearSummaryFilters()">✕ ล้าง</button>`;
+    } else {
+      catFilterChipEl.style.display='none';
+      catFilterChipEl.innerHTML='';
+    }
+  }
   if(searchQ) filtered=filtered.filter(t=>t.text.toLowerCase().includes(searchQ)||(t.note||'').toLowerCase().includes(searchQ));
 
   const priW={high:0,mid:1,low:2};
@@ -1117,7 +1298,7 @@ function render(){
 
   const el=document.getElementById('list');
   if(!filtered.length){
-    const msgs={overdue:'ไม่มีงานที่เกินกำหนด 🎉',done:'ยังไม่มีงานที่เสร็จ',pinned:'ยังไม่มีงานที่ปักหมุด',duetoday:'ไม่มีงานครบกำหนดวันนี้'};
+    const msgs={overdue:'ไม่มีงานที่เกินกำหนด 🎉',done:'ยังไม่มีงานที่เสร็จ',pinned:'ยังไม่มีงานที่ปักหมุด',duetoday:'ไม่มีงานครบกำหนดวันนี้',within7:'ไม่มีงานที่ครบกำหนดภายใน 7 วัน',within15:'ไม่มีงานที่ครบกำหนดภายใน 15 วัน',within30:'ไม่มีงานที่ครบกำหนดภายใน 1 เดือน'};
     el.innerHTML=`<div class="empty"><div>${filter==='done'?'✅':filter==='pinned'?'📌':'📋'}</div>${searchQ?'ไม่พบงานที่ค้นหา':msgs[filter]||'ไม่มีงานในรายการ'}</div>`;
     renderSummary(); return;
   }
@@ -1304,11 +1485,13 @@ document.addEventListener('keydown', function(e) {
   const confirmOverlayEl = document.getElementById('confirmOverlay');
   const catModalEl = document.getElementById('catModal');
   const batchModalEl = document.getElementById('batchModal');
+  const backupModalEl = document.getElementById('backupModal');
   const fbModalEl = document.getElementById('fbModal');
   const qnDrawerEl = document.getElementById('qnDrawer');
   if (confirmOverlayEl && confirmOverlayEl.classList.contains('open')) { closeConfirm(); return; }
   if (editModalEl && editModalEl.classList.contains('open')) { closeEdit(); return; }
   if (batchModalEl && batchModalEl.classList.contains('open')) { closeBatchModal(); return; }
+  if (backupModalEl && backupModalEl.classList.contains('open')) { closeBackupModal(); return; }
   if (catModalEl && catModalEl.classList.contains('open')) { closeCatModal(); return; }
   if (fbModalEl && fbModalEl.classList.contains('open')) { closeFbModal(); return; }
   if (qnDrawerEl && qnDrawerEl.classList.contains('open')) { closeQNDrawer(); return; }
