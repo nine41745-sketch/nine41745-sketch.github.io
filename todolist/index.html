@@ -96,6 +96,8 @@
   h1{font-size:24px;font-weight:700;margin-bottom:4px;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;}
   .subtitle{font-size:13px;color:#475569;margin-bottom:4px;text-align:center;}
   .last-updated{font-size:11px;color:#334155;margin-bottom:14px;text-align:center;}
+  .version-tag{display:flex;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:600;color:#64748b;background:#0f172a;border:1px solid #1e293b;border-radius:20px;padding:2px 10px;margin:0 auto 14px;width:fit-content;letter-spacing:.3px;}
+  body.light .version-tag{background:#f1f5f9;border-color:#e2e8f0;color:#94a3b8;}
   .toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;}
   .search-wrap{flex:1;min-width:140px;position:relative;}
   .search-wrap input{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:9px 12px 9px 34px;color:#e2e8f0;font-size:14px;font-family:'Sarabun',sans-serif;outline:none;width:100%;transition:border-color .2s;}
@@ -156,7 +158,8 @@
   .del-btn,.edit-btn,.pin-btn{background:transparent;border:none;color:#334155;cursor:pointer;font-size:14px;padding:2px 5px;border-radius:6px;transition:color .2s;}
   .del-btn:hover{color:#f87171;}
   .edit-btn:hover{color:#818cf8;}
-  .pin-btn:hover,.pin-btn.pinned{color:#818cf8;}
+  .pin-btn:hover{color:#818cf8;}
+  .pin-btn.pinned{color:#818cf8;background:#818cf822;box-shadow:0 0 0 1px #818cf850 inset;}
   .todo-note{font-size:12px;color:#475569;margin-top:4px;font-style:italic;}
   .empty{text-align:center;padding:48px 0;color:#334155;}
   .empty div{font-size:40px;margin-bottom:12px;}
@@ -205,7 +208,25 @@
   .cat-add-row{display:flex;gap:8px;padding-top:10px;border-top:1px solid #1e293b;}
   body.light .cat-add-row{border-color:#e2e8f0;}
   .cat-add-row .inp{flex:1;}
-  #taskInp{resize:none;overflow:hidden;min-height:42px;max-height:200px;line-height:1.5;font-family:'Sarabun',sans-serif;}
+  .btn-add-secondary{background:transparent;border:1.5px solid #334155;border-radius:10px;color:#94a3b8;padding:11px 14px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;font-weight:600;white-space:nowrap;transition:all .2s;}
+  .btn-add-secondary:hover{border-color:#818cf8;color:#818cf8;background:#818cf812;}
+  body.light .btn-add-secondary{border-color:#cbd5e1;color:#64748b;}
+  body.light .btn-add-secondary:hover{border-color:#818cf8;color:#4f46e5;background:#818cf812;}
+  .batch-modal .modal{max-width:640px;}
+  .batch-rows-container{max-height:50vh;overflow-y:auto;margin-bottom:10px;padding-right:2px;}
+  .batch-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #1e293b;}
+  body.light .batch-row{border-color:#e2e8f0;}
+  .batch-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .batch-row .inp,.batch-row .sel{padding:8px 10px;font-size:13px;width:auto;}
+  .batch-row-text{flex:1 1 150px;min-width:120px;}
+  .batch-row-cat{flex:1 1 110px;min-width:100px;}
+  .batch-row-pri{flex:1 1 90px;min-width:84px;}
+  .batch-row-due{flex:1 1 120px;min-width:110px;}
+  .batch-row-remove{flex:0 0 auto;background:transparent;border:none;color:#475569;cursor:pointer;font-size:16px;padding:6px 8px;border-radius:6px;transition:color .2s;}
+  .batch-row-remove:hover{color:#f87171;}
+  .batch-add-row-btn{width:100%;background:transparent;border:1.5px dashed #334155;border-radius:10px;color:#64748b;padding:10px;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;}
+  .batch-add-row-btn:hover{border-color:#818cf8;color:#818cf8;}
+  body.light .batch-add-row-btn{border-color:#cbd5e1;color:#94a3b8;}
 
   /* ── QUICK NOTES DRAWER ─────────────────────────────── */
   .qn-fab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:40;background:linear-gradient(135deg,#818cf8,#c084fc);border:none;border-radius:14px 0 0 14px;color:#fff;width:44px;height:56px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:-2px 2px 12px #818cf840;transition:width .2s,box-shadow .2s;}
@@ -258,6 +279,7 @@
   <h1>📝 สิ่งที่ต้องทำ</h1>
   <div class="subtitle" id="dateLabel">วันอาทิตย์ที่ 28 มิถุนายน 2569</div>
   <div class="last-updated" id="lastUpdatedLabel"></div>
+  <div class="version-tag">🏷️ v3.2.0</div>
 
   <div class="toolbar">
     <div class="search-wrap">
@@ -281,7 +303,7 @@
   <div class="add-card">
     <div class="fg" style="margin-bottom:8px">
       <label class="lbl">ชื่องาน</label>
-      <textarea class="inp" id="taskInp" rows="1" placeholder="พิมพ์งานที่ต้องทำ... (พิมพ์หลายบรรทัดเพื่อเพิ่มพร้อมกัน, Shift+Enter ขึ้นบรรทัดใหม่)" oninput="checkDuplicate();autoResizeTaskInp(this)" onkeydown="handleTaskInpKeydown(event)"></textarea>
+      <input class="inp" type="text" id="taskInp" placeholder="พิมพ์งานที่ต้องทำ..." oninput="checkDuplicate()" onkeydown="if(event.key===&#39;Enter&#39;)addTask()">
       <div class="dup-warn" id="dupWarn"></div>
     </div>
     <div class="row2">
@@ -326,7 +348,10 @@
         <input class="inp" id="noteInp" placeholder="เช่น รอเงินเดือน, รอคิวนัด...">
       </div>
     </div>
-    <button class="btn-add" onclick="addTask()">+ เพิ่มงาน</button>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-add" style="margin-top:0;flex:1;" onclick="addTask()">+ เพิ่มงาน</button>
+      <button class="btn-add-secondary" onclick="openBatchModal()">✨ เพิ่มหลายรายการ</button>
+    </div>
   </div>
 
   <div class="filters">
@@ -461,6 +486,19 @@
     </div>
   </div>
 </div>
+<!-- Batch Add Modal -->
+<div class="modal-overlay batch-modal" id="batchModal">
+  <div class="modal">
+    <h3>✨ เพิ่มหลายรายการ</h3>
+    <div class="batch-rows-container" id="batchRowsContainer"></div>
+    <button type="button" class="batch-add-row-btn" onclick="addBatchRow()">+ เพิ่มแถว</button>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeBatchModal()">ยกเลิก</button>
+      <button class="btn-save" onclick="saveBatchTasks()">💾 บันทึกทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">📥 นำเข้า 89 รายการแล้ว</div>
 
 <script>
@@ -475,6 +513,16 @@ function renderCatOptions(){
   const sel1=document.getElementById('catSel'), sel2=document.getElementById('editCat');
   if(sel1){ const v1=sel1.value; sel1.innerHTML=opts; if([...sel1.options].some(o=>o.value===v1)) sel1.value=v1; }
   if(sel2){ const v2=sel2.value; sel2.innerHTML=opts; if([...sel2.options].some(o=>o.value===v2)) sel2.value=v2; }
+  refreshBatchCatOptions();
+}
+function refreshBatchCatOptions(){
+  // อัปเดต dropdown หมวดหมู่ในทุกแถวของ Batch Modal ที่ render ไปแล้ว ให้ตรงกับ categories ล่าสุดทันที
+  const opts=categories.map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+  document.querySelectorAll('#batchRowsContainer .batch-row-cat').forEach(sel=>{
+    const v=sel.value;
+    sel.innerHTML=opts;
+    if([...sel.options].some(o=>o.value===v)) sel.value=v;
+  });
 }
 renderCatOptions();
 const SEED_VERSION=3;
@@ -792,15 +840,8 @@ function similarity(a,b){
   return matches/longer.length;
 }
 function checkDuplicate(){
-  const raw=document.getElementById('taskInp').value;
+  const txt=document.getElementById('taskInp').value.trim();
   const warn=document.getElementById('dupWarn');
-  const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(lines.length>1){
-    warn.innerHTML=`📝 พร้อมเพิ่ม ${lines.length} งานพร้อมกัน (กด + เพิ่มงาน หรือ Enter)`;
-    warn.classList.add('show');
-    return;
-  }
-  const txt=lines[0]||'';
   if(!txt||txt.length<3){ warn.classList.remove('show'); return; }
   const exact=tasks.find(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
   if(exact){ warn.innerHTML=`⚠️ มีงานนี้อยู่แล้ว: "<b>${exact.text}</b>"`; warn.classList.add('show'); return; }
@@ -808,44 +849,86 @@ function checkDuplicate(){
   if(similar){ warn.innerHTML=`💡 คล้ายกับที่มีอยู่: "<b>${similar.text}</b>" — ยังเพิ่มได้ถ้าต่างกัน`; warn.classList.add('show'); return; }
   warn.classList.remove('show');
 }
-function autoResizeTaskInp(el){
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,200)+'px';
-}
-function handleTaskInpKeydown(e){
-  if(e.key==='Enter' && !e.shiftKey){
-    e.preventDefault();
-    addTask();
-  }
-}
 
 function addTask(){
-  const raw=document.getElementById('taskInp').value;
-  const lines=raw.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(!lines.length){ document.getElementById('taskInp').focus(); return; }
+  const txt=document.getElementById('taskInp').value.trim();
+  if(!txt){ document.getElementById('taskInp').focus(); return; }
+  const exact=tasks.find(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
+  if(exact){ showToast('⚠️ มีงานนี้อยู่แล้ว'); document.getElementById('taskInp').select(); return; }
   const cat=parseInt(document.getElementById('catSel').value);
   const pri=document.getElementById('priSel').value;
   const due=document.getElementById('dueSel').value;
   const note=document.getElementById('noteInp').value.trim();
-  const base=Date.now();
-  let added=0, skipped=0;
-  lines.forEach((txt,i)=>{
-    const isDupExisting=tasks.some(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
-    const isDupInBatch=lines.slice(0,i).some(l=>l.toLowerCase()===txt.toLowerCase());
-    if(isDupExisting||isDupInBatch){ skipped++; return; }
-    tasks.unshift({id:base+i,text:txt,done:false,pri,cat,due,note,pinned:false,addedDate:new Date().toISOString()});
-    added++;
-  });
+  tasks.unshift({id:Date.now(),text:txt,done:false,pri,cat,due,note,pinned:false,addedDate:new Date().toISOString()});
   save(); render();
   document.getElementById('taskInp').value='';
-  autoResizeTaskInp(document.getElementById('taskInp'));
   document.getElementById('noteInp').value='';
-  if(!todayLocked) document.getElementById('dueSel').value='';
+  document.getElementById('dueSel').value='';
+  todayLocked=false;
+  document.getElementById('btnToday').classList.remove('active');
   document.getElementById('dupWarn').classList.remove('show');
   document.getElementById('taskInp').focus();
-  if(added>1) showToast(`✅ เพิ่ม ${added} งานแล้ว` + (skipped?` (ข้าม ${skipped} ซ้ำ)`:''));
-  else if(added===1) showToast('✅ เพิ่มงานแล้ว');
-  else showToast('⚠️ ไม่มีงานใหม่ (ซ้ำทั้งหมด)');
+  showToast('✅ เพิ่มงานแล้ว');
+}
+
+// ── BATCH ADD MODAL ─────────────────────────────────────
+function batchCatOptionsHtml(){
+  return categories.map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+}
+function createBatchRowHtml(){
+  return `<div class="batch-row">
+    <input class="inp batch-row-text" type="text" placeholder="ชื่องาน..." onkeydown="if(event.key==='Enter'){event.preventDefault();saveBatchTasks();}">
+    <select class="sel batch-row-cat">${batchCatOptionsHtml()}</select>
+    <select class="sel batch-row-pri">
+      <option value="low">🟢 ปกติ</option>
+      <option value="mid">🟡 ด่วน</option>
+      <option value="high">🔴 เร่งด่วน</option>
+    </select>
+    <input class="inp batch-row-due" type="date">
+    <button type="button" class="batch-row-remove" onclick="this.closest('.batch-row').remove()" title="ลบแถวนี้">✕</button>
+  </div>`;
+}
+function addBatchRow(){
+  const container=document.getElementById('batchRowsContainer');
+  container.insertAdjacentHTML('beforeend', createBatchRowHtml());
+}
+function openBatchModal(){
+  const container=document.getElementById('batchRowsContainer');
+  container.innerHTML='';
+  for(let i=0;i<3;i++) addBatchRow();
+  document.getElementById('batchModal').classList.add('open');
+  setTimeout(()=>{ const first=container.querySelector('.batch-row-text'); if(first) first.focus(); },100);
+}
+function closeBatchModal(){
+  document.getElementById('batchModal').classList.remove('open');
+}
+document.getElementById('batchModal').addEventListener('click',function(e){ if(e.target===this) closeBatchModal(); });
+
+function saveBatchTasks(){
+  const rows=document.querySelectorAll('#batchRowsContainer .batch-row');
+  const base=Date.now();
+  let added=0, skipped=0;
+  const addedTexts=[];
+  rows.forEach((row,i)=>{
+    const txt=row.querySelector('.batch-row-text').value.trim();
+    if(!txt) return;
+    const cat=parseInt(row.querySelector('.batch-row-cat').value);
+    const pri=row.querySelector('.batch-row-pri').value;
+    const due=row.querySelector('.batch-row-due').value;
+    const isDupExisting=tasks.some(t=>t.text.toLowerCase()===txt.toLowerCase()&&!t.done);
+    const isDupInBatch=addedTexts.some(l=>l.toLowerCase()===txt.toLowerCase());
+    if(isDupExisting||isDupInBatch){ skipped++; return; }
+    tasks.unshift({id:base+i,text:txt,done:false,pri,cat,due,note:'',pinned:false,addedDate:new Date().toISOString()});
+    addedTexts.push(txt);
+    added++;
+  });
+  if(added===0){
+    showToast(skipped?'⚠️ งานซ้ำทั้งหมด ไม่ได้เพิ่ม':'⚠️ กรุณากรอกชื่องานอย่างน้อย 1 แถว');
+    return;
+  }
+  save(); render();
+  closeBatchModal();
+  showToast(`✅ เพิ่ม ${added} งานแล้ว` + (skipped?` (ข้าม ${skipped} ซ้ำ)`:''));
 }
 
 function toggle(id){
@@ -1027,7 +1110,7 @@ function render(){
     if(a.pinned!==b.pinned) return a.pinned?-1:1;
     if(isOverdue(a)!==isOverdue(b)) return isOverdue(a)?-1:1;
     if(priW[a.pri]!==priW[b.pri]) return priW[a.pri]-priW[b.pri];
-    if(a.due&&b.due) return new Date(a.due)-new Date(b.due);
+    if(a.due&&b.due) return parseLocalDate(a.due)-parseLocalDate(b.due);
     if(a.due) return -1; if(b.due) return 1;
     return b.id-a.id;
   });
@@ -1044,7 +1127,7 @@ function render(){
     const ov=isOverdue(t),soon=isSoon(t);
     let dueTag='';
     if(t.due){
-      const diff=Math.round((new Date(t.due)-new Date(new Date().toDateString()))/(1000*60*60*24));
+      const diff=Math.round((parseLocalDate(t.due)-localMidnight())/(1000*60*60*24));
       const cls=ov?'overdue':soon?'soon':'';
       const label=t.done?fmtDue(t.due):ov?`เกิน ${Math.abs(diff)} วัน`:diff===0?'ครบกำหนดวันนี้!':diff===1?'พรุ่งนี้':fmtDue(t.due);
       dueTag=`<span class="tag-due ${cls}">📅 ${label}</span>`;
@@ -1053,7 +1136,7 @@ function render(){
       <div class="priority-dot ${priCls[t.pri]||'p-low'}"></div>
       <button class="check-btn ${t.done?'checked':''}" onclick="toggle(${t.id})">${t.done?'✓':''}</button>
       <div class="todo-body">
-        <div class="todo-text">${t.text}${t.pinned&&!t.done?' <span class="tag-pin">📌</span>':''}</div>
+        <div class="todo-text">${t.text}</div>
         <div class="todo-meta">
           <span class="tag-cat ${catClass(t.cat)}">${catLabel(t.cat)}</span>
           ${dueTag}
@@ -1214,9 +1297,21 @@ function closeQNDrawer() {
   }
 }
 
-// Keyboard shortcut: Escape ปิด drawer
+// Keyboard shortcut: Escape ปิด Modal/Drawer ที่เปิดอยู่ (ปิดทีละตัวจากบนสุด)
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeQNDrawer();
+  if (e.key !== 'Escape') return;
+  const editModalEl = document.getElementById('editModal');
+  const confirmOverlayEl = document.getElementById('confirmOverlay');
+  const catModalEl = document.getElementById('catModal');
+  const batchModalEl = document.getElementById('batchModal');
+  const fbModalEl = document.getElementById('fbModal');
+  const qnDrawerEl = document.getElementById('qnDrawer');
+  if (confirmOverlayEl && confirmOverlayEl.classList.contains('open')) { closeConfirm(); return; }
+  if (editModalEl && editModalEl.classList.contains('open')) { closeEdit(); return; }
+  if (batchModalEl && batchModalEl.classList.contains('open')) { closeBatchModal(); return; }
+  if (catModalEl && catModalEl.classList.contains('open')) { closeCatModal(); return; }
+  if (fbModalEl && fbModalEl.classList.contains('open')) { closeFbModal(); return; }
+  if (qnDrawerEl && qnDrawerEl.classList.contains('open')) { closeQNDrawer(); return; }
 });
 
 // Init QN Firebase เมื่อ Firebase พร้อม (หลัง initFirebaseDB)
