@@ -7,8 +7,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>ลัคกี้&amp;ยูฟ่า Dashboard</title>
-<!-- App Version: 2.0.1-mobile-fixed (cache-bust + sync-time + mobile UI) -->
-<script>console.log("App Version: 2.0.1-mobile-fixed");</script>
+<!-- App Version: 2.4.0-delete-month-tombstone -->
+<script>console.log("App Version: 2.4.0-delete-month-tombstone");</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // ── SCRATCH PAD TOPICS ────────────────────────────────────────
@@ -813,7 +813,7 @@ body.light-mode .qn-foot{border-top-color:#e2e8f0;}
         &nbsp;·&nbsp;
         <span class="last-upd" id="lastUpdated">-</span>
       </div>
-      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.3.0-latestmonth-remsel</div>
+      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.4.0-delete-month-tombstone</div>
     </div>
     <div class="header-right">
       <select class="month-select" id="monthSel" onchange="switchMonth()"><option value="2569-06">มิถุนายน 2569</option><option value="2569-07">กรกฎาคม 2569</option><option value="2569-08">สิงหาคม 2569</option></select>
@@ -1820,6 +1820,20 @@ function saveNewMonth(){
   DB[key]={name:`${THAI_M[parseInt(mn)]} ${yr}`,days:{}};
   save();hideModal('addMonthModal');buildMonthSel();curMonth=key;document.getElementById('monthSel').value=key;renderAll();
 }
+// ── Tombstone helpers: กันเดือนที่ลบไปแล้วเด้งกลับมาจาก Firebase ──
+// (เกิดจาก race condition ระหว่าง .remove() แบบ async กับ .on('value') listener
+//  ที่อาจ sync ข้อมูลเก่ากลับมาก่อนที่ .remove() จะไปถึง Firebase จริง)
+function getDeletedMonths(){
+  try{return JSON.parse(localStorage.getItem('bh_deleted_months'))||[];}catch(e){return [];}
+}
+function addDeletedMonth(mo){
+  const list=getDeletedMonths();
+  if(!list.includes(mo)){list.push(mo);localStorage.setItem('bh_deleted_months',JSON.stringify(list));}
+}
+function clearDeletedMonth(mo){
+  const list=getDeletedMonths().filter(x=>x!==mo);
+  localStorage.setItem('bh_deleted_months',JSON.stringify(list));
+}
 function deleteCurrentMonth(){
   if(!curMonth||!DB[curMonth])return;
   const monthName=DB[curMonth].name||curMonth;
@@ -1829,9 +1843,12 @@ function deleteCurrentMonth(){
   delete DB[curMonth];
   // Fix 2: ใช้ .remove() เฉพาะ path ที่ลบ แทน set(DB) ทั้งก้อน
   localStorage.setItem('bh_data2',JSON.stringify(DB));
+  // จดไว้เป็น tombstone ก่อนยิง .remove() — กันเดือนนี้เด้งกลับจาก listener
+  // ระหว่างที่คำสั่งลบยังไปไม่ถึง Firebase (เช่น รีเฟรชเร็วเกินไป)
+  addDeletedMonth(deletedMonth);
   if(window._fbRef){
     window._fbRef.child(deletedMonth).remove()
-      .then(()=>updateSyncBadge('ok'))
+      .then(()=>{clearDeletedMonth(deletedMonth);updateSyncBadge('ok');})
       .catch(()=>updateSyncBadge('err'));
   }
   const months=Object.keys(DB).sort();
@@ -2087,10 +2104,21 @@ function initFirebaseDB(config){
         const _monthsToPush=[];
 
         // เช็คทุกเดือนที่ Firebase มี
+        const _deletedMonths=getDeletedMonths();
         Object.keys(data).forEach(mo=>{
           if(!DB[mo]){
-            // Firebase มีเดือนที่ local ไม่มี → รับมา
-            DB[mo]=data[mo];_fbChanged=true;
+            if(_deletedMonths.includes(mo)){
+              // เดือนนี้ถูกลบไปแล้วในเครื่องนี้ แต่ Firebase ยังมีอยู่ (คำสั่ง .remove() ครั้งก่อนอาจไม่สำเร็จ)
+              // → ไม่รับกลับมา และยิง .remove() ซ้ำเพื่อให้ Firebase ตรงกับ local จริงๆ
+              if(window._fbRef){
+                window._fbRef.child(mo).remove()
+                  .then(()=>clearDeletedMonth(mo))
+                  .catch(()=>{});
+              }
+            } else {
+              // Firebase มีเดือนที่ local ไม่มี → รับมา
+              DB[mo]=data[mo];_fbChanged=true;
+            }
           } else {
             const fbTs=data[mo].updatedAt||0;
             const localTs=DB[mo].updatedAt||0;
@@ -2109,6 +2137,9 @@ function initFirebaseDB(config){
 
         // เดือนที่ local มีแต่ Firebase ไม่มี → push ขึ้น
         Object.keys(DB).forEach(mo=>{if(!data[mo])_monthsToPush.push(mo);});
+
+        // เดือนที่เคยลบ (tombstone) แต่ Firebase ไม่มีแล้ว → ลบไปสำเร็จจริง เคลียร์ tombstone ทิ้งได้
+        _deletedMonths.forEach(mo=>{if(!data[mo])clearDeletedMonth(mo);});
 
         if(window._skipFbRender){
           window._skipFbRender=false;
