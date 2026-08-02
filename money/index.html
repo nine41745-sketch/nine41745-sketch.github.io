@@ -616,6 +616,7 @@ body.light-mode .header-date-row .last-upd{color:#6b7280;}
 .amt-btn.jen-amt{color:#f9a8d4;background:#2a1020;border-color:#831843;}
 .amt-btn.jen-amt:hover{background:#3d1530;border-color:#f472b6;}
 .amt-btn.jen-amt.sel{background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;border-color:transparent;box-shadow:0 0 8px rgba(236,72,153,.5);}
+.badge.amt-btn.sel{background:linear-gradient(135deg,#6366f1,#8b5cf6)!important;color:#fff!important;box-shadow:0 0 8px rgba(99,102,241,.5);}
 body.light-mode #selBar{background:linear-gradient(90deg,#e0e7ff,#fce7f3);}
 body.light-mode .sel-info{color:#6b7280;}
 body.light-mode .sel-info strong{color:#4f46e5;}
@@ -812,7 +813,7 @@ body.light-mode .qn-foot{border-top-color:#e2e8f0;}
         &nbsp;·&nbsp;
         <span class="last-upd" id="lastUpdated">-</span>
       </div>
-      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.2.0-quicknotes</div>
+      <div style="font-size:9px;color:#334155;margin-top:2px;">v2.3.0-latestmonth-remsel</div>
     </div>
     <div class="header-right">
       <select class="month-select" id="monthSel" onchange="switchMonth()"><option value="2569-06">มิถุนายน 2569</option><option value="2569-07">กรกฎาคม 2569</option><option value="2569-08">สิงหาคม 2569</option></select>
@@ -1417,7 +1418,8 @@ function logout(){
 function buildMonthSel(){
   const sel=document.getElementById('monthSel');sel.innerHTML='';
   Object.keys(DB).sort().forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=DB[k].name;sel.appendChild(o);});
-  if(!curMonth||!DB[curMonth])curMonth=Object.keys(DB).sort()[0]||'';
+  // เปิดเดือนล่าสุด (เรียงจากมากไปน้อย เอาตัวแรก) แทนเดือนแรกสุด
+  if(!curMonth||!DB[curMonth]){const _ks=Object.keys(DB).sort();curMonth=_ks[_ks.length-1]||'';}
   sel.value=curMonth;
 }
 function switchMonth(){curMonth=document.getElementById('monthSel').value;renderAll();}
@@ -1595,7 +1597,7 @@ function buildDayRow(d,day){
     <td style="color:#a5b4fc">${expN>0?fmt(expN):'<span style="color:#334155">฿0</span>'}</td>
     <td style="color:#f9a8d4">${expJ>0?fmt(expJ):'<span style="color:#334155">฿0</span>'}</td>
     <td style="color:#fcd34d">${ded>0?fmt(ded):'<span style="color:#334155">-</span>'}</td>
-    <td><span class="badge ${rem>0?'badge-green':rem<0?'badge-red':'badge-zero'}">${fmt(rem)}</span></td>
+    <td><span class="badge amt-btn ${rem>0?'badge-green':rem<0?'badge-red':'badge-zero'}" id="amt-${d}-rem-${viewPerson}" onclick="toggleSelAmt(event,'rem','${viewPerson}',${rem},${d})" title="คลิกเพื่อรวมยอดคงเหลือหลายวัน">${fmt(rem)}</span></td>
     <td onclick="event.stopPropagation()">
       <button class="btn btn-warning btn-sm" onclick="openEditIncome(${d})">✏️</button>
       <button class="btn btn-primary btn-sm" onclick="openAddItem(${d});event.stopPropagation()">+</button>
@@ -2376,7 +2378,12 @@ function selCopyLine(){
   text+='─────────────\n';
   window._selAmts.forEach(x=>{
     const parts=x.key.split('-');
-    const dayN=parseInt(parts[0]),itemId=parseInt(parts[1]),typ=parts[2];
+    const dayN=parseInt(parts[0]),idPart=parts[1],typ=parts[2];
+    if(idPart==='rem'){
+      text+='⚖️ คงเหลือวันที่ '+dayN+': ฿'+Math.round(x.val).toLocaleString()+'\n';
+      return;
+    }
+    const itemId=parseInt(idPart);
     const dayObj=DB[curMonth]&&DB[curMonth].days[dayN];
     const itm=dayObj&&(dayObj.items||[]).find(i=>i.id===itemId);
     const iname=itm?itm.name:'';
